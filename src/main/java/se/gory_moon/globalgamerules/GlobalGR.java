@@ -8,7 +8,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.common.MinecraftForge;
 import se.gory_moon.globalgamerules.config.Config;
 
-@Mod(modid = GlobalGR.MODID, version = GlobalGR.VERSION, guiFactory = "se.gory_moon.globalgamerules.GGRGuiFactory", acceptableRemoteVersions = "*")
+@Mod(modid = GlobalGR.MODID, version = GlobalGR.VERSION, guiFactory = "se.gory_moon.globalgamerules.config.GGRGuiFactory", acceptableRemoteVersions = "*")
 public class GlobalGR {
     public static final String MODID = "GlobalGameRules";
     public static final String VERSION = "@MOD_VERSION@";
