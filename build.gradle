@@ -32,7 +32,7 @@ group = "se.gory_moon" // http://maven.apache.org/guides/mini/guide-naming-conve
 archivesBaseName = "GlobalGameRules"
 
 minecraft {
-    version = "1.7.10-10.13.2.1291"
+    version = "1.8-11.14.1.1306"
     runDir = "eclipse"
 
     // the mappings can be changed at any time, and must be in the following format.
