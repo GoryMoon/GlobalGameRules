@@ -11,3 +11,4 @@ libs/
 *.iml
 *.ipr
 *.iws
+gradle.properties

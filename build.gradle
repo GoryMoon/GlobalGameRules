@@ -15,6 +15,14 @@ buildscript {
     }
 }
 
+configurations {
+    deployerJars
+}
+
+repositories {
+    mavenCentral()
+}
+
 apply plugin: 'forge'
 
 // Define properties file
@@ -27,12 +35,12 @@ configFile.withReader {
     project.ext.config = new ConfigSlurper().parse prop
 }
 
-version = "1.0"
+version = "${config.mc_version}" + "-" + "${config.mod_version}"
 group = "se.gory_moon" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "GlobalGameRules"
 
 minecraft {
-    version = "1.8-11.14.1.1306"
+    version = "${config.mc_version}" + "-" + "${config.forge_version}"
     runDir = "eclipse"
 
     // the mappings can be changed at any time, and must be in the following format.
@@ -47,6 +55,8 @@ minecraft {
 }
 
 dependencies {
+    deployerJars "org.apache.maven.wagon:wagon-ftp:2.2"
+
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..
     //compile "some.group:artifact:version:classifier"
@@ -81,3 +91,79 @@ processResources
                 exclude 'mcmod.info'
             }
         }
+
+task devJar(type: Jar, dependsOn: 'classes') {
+    from(sourceSets.main.output) {
+        include '**'
+    }
+
+    extension = 'jar'
+    classifier = 'dev'
+}
+task sourceJar(type: Jar) {
+    from(sourceSets.main.allSource) {
+        include '**'
+    }
+    extension = 'jar'
+    classifier = 'sources'
+}
+
+
+artifacts {
+    archives devJar
+    archives sourceJar
+}
+
+uploadArchives {
+    repositories.mavenDeployer {
+        if (project.hasProperty("maven_url")) {
+            println 'Publishing to files server'
+
+            configuration = configurations.deployerJars
+            repository(url: project.maven_url) {
+                authentication(userName: project.maven_username, password: project.maven_password)
+            }
+            pom {
+                groupId = project.group
+                version = project.version
+                artifactId = project.archivesBaseName
+            }
+
+            pom.project {
+                name project.archivesBaseName
+                packaging 'jar'
+                description 'GlobalGameRules'
+                url 'https://github.com/GoryMoon/GlobalGameRules/'
+
+                scm {
+                    url 'https://github.com/GoryMoon/GlobalGameRules/'
+                    connection 'scm:git:git://github.com/GoryMoon/GlobalGameRules.git'
+                    developerConnection 'scm:git:git@github.com/GoryMoon/GlobalGameRules.git'
+                }
+
+                issueManagement {
+                    system 'github'
+                    url 'https://github.com/GoryMoon/GlobalGameRules/issues'
+                }
+
+                licenses {
+                    license {
+                        name 'GNU Lesser General Public License 3.0'
+                        url 'https://www.gnu.org/licenses/lgpl-3.0.txt'
+                        distribution 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'Gory_Moon'
+                        name 'Gory_Moon'
+                        roles {
+                            role 'developer'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
