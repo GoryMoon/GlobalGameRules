@@ -9,7 +9,7 @@ public class GGRConfigGUI extends GuiConfig {
 
     public GGRConfigGUI(GuiScreen parentScreen) {
         super(parentScreen,
-                new ConfigElement(GlobalGR.instance.config.getCategory(GlobalGR.instance.config.CATEGORY_GAMERULES)).getChildElements(),
+                new ConfigElement(GlobalGR.instance.config.getCategory(Config.CATEGORY_GAMERULES)).getChildElements(),
                 GlobalGR.MODID, true, false, GuiConfig.getAbridgedConfigPath(GlobalGR.instance.config.toString()));
     }
 }

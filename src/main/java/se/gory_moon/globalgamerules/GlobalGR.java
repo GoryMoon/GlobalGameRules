@@ -2,7 +2,6 @@ package se.gory_moon.globalgamerules;
 
 
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
@@ -22,7 +21,7 @@ public class GlobalGR {
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         config = new Config(event.getSuggestedConfigurationFile()).loadConfig();
-        FMLCommonHandler.instance().bus().register(config);
+        MinecraftForge.EVENT_BUS.register(config);
     }
 
     @EventHandler

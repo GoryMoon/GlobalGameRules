@@ -28,7 +28,7 @@ public class WorldEvents {
         for (Map.Entry<String, Config.Value> entry : GlobalGR.instance.config.rules.entrySet()) {
             String rule = entry.getKey();
             Config.Value value = entry.getValue();
-            String state = gRules.getGameRuleStringValue(rule);
+            String state = gRules.getString(rule);
 
             GlobalGR.instance.config.rules.put(rule, new Config.Value(state, value.getType()));
         }
