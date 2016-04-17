@@ -1,6 +1,7 @@
 GlobalGameRules
 ===============
 [![Build Status](https://travis-ci.org/GoryMoon/GlobalGameRules.svg?branch=master)](https://travis-ci.org/GoryMoon/GlobalGameRules)
+
 A mod that allows for global GameRules
 
 
