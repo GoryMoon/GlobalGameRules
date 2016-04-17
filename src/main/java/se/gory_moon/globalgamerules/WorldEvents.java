@@ -11,7 +11,7 @@ public class WorldEvents {
 
     @SubscribeEvent
     public void onWorldLoad(WorldEvent.Load event) {
-        GameRules gRules = event.world.getGameRules();
+        GameRules gRules = event.getWorld().getGameRules();
 
         for (Map.Entry<String, Config.Value> entry : GlobalGR.instance.config.rules.entrySet()) {
             String rule = entry.getKey();
@@ -23,7 +23,7 @@ public class WorldEvents {
 
     @SubscribeEvent
     public void onWorldUnLoad(WorldEvent.Unload event) {
-        GameRules gRules = event.world.getGameRules();
+        GameRules gRules = event.getWorld().getGameRules();
 
         for (Map.Entry<String, Config.Value> entry : GlobalGR.instance.config.rules.entrySet()) {
             String rule = entry.getKey();
