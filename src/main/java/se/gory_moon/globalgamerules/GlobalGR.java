@@ -1,32 +1,44 @@
 package se.gory_moon.globalgamerules;
 
 
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
+import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import se.gory_moon.globalgamerules.config.Config;
+import se.gory_moon.globalgamerules.proxy.CommonProxy;
+import se.gory_moon.globalgamerules.reference.Reference;
 
-@Mod(modid = GlobalGR.MODID, version = GlobalGR.VERSION, guiFactory = "se.gory_moon.globalgamerules.config.GGRGuiFactory", acceptableRemoteVersions = "*")
+@Mod(modid = Reference.MODID, name = Reference.NAME,version = Reference.VERSION, guiFactory = Reference.GUI_FACTORY, acceptableRemoteVersions = "*")
 public class GlobalGR {
-    public static final String MODID = "GlobalGameRules";
-    public static final String VERSION = "@MOD_VERSION@";
 
     @Instance
-    public static GlobalGR instance;
-    public Config config;
+    private static GlobalGR instance;
+
+    @SidedProxy(clientSide = Reference.PROXY_CLIENT, serverSide = Reference.PROXY_SERVER)
+    private static CommonProxy proxy;
+
+    private Config config;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        Reference.logger = event.getModLog();
         config = new Config(event.getSuggestedConfigurationFile()).loadConfig();
-        MinecraftForge.EVENT_BUS.register(config);
+        proxy.setConfigEntryClasses();
     }
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        MinecraftForge.EVENT_BUS.register(new WorldEvents());
+        proxy.registerEvents();
+    }
 
+    public static GlobalGR getInstance() {
+        return instance;
+    }
+
+    public static Config getConfig() {
+        return instance.config;
     }
 }

@@ -5,7 +5,7 @@ import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import se.gory_moon.globalgamerules.GlobalGR;
+import se.gory_moon.globalgamerules.reference.Reference;
 
 import java.io.File;
 import java.util.HashMap;
@@ -14,7 +14,13 @@ import java.util.Map;
 public class Config extends Configuration {
 
     public static final String CATEGORY_GAMERULES = "gamerules";
+    public static final String CATEGORY_MISC = "misc";
+
+    public static final String MISC_WORLDDIFFICULTY = "worldDifficulty";
+    public static final String MISC_WORLDDIFFICULTYLOCK = "worldDifficultyLocked";
+
     public HashMap<String, Value> rules = new HashMap<String, Value>();
+    public HashMap<String, Value> misc = new HashMap<String, Value>();
     public HashMap<String, Value> defaults;
     public HashMap<String, String> comments = new HashMap<String, String>();
 
@@ -38,6 +44,8 @@ public class Config extends Configuration {
         rules.put("spawnRadius", new Value("10", ValueType.INTEGER));
         rules.put("disableElytraMovementCheck", new Value("false", ValueType.BOOLEAN));
 
+        misc.put(MISC_WORLDDIFFICULTY, new Value("-1", ValueType.INTEGER));
+        misc.put(MISC_WORLDDIFFICULTYLOCK, new Value("false", ValueType.BOOLEAN));
 
         comments.put("doFireTick", "Whether fire should spread and naturally extinguish");
         comments.put("mobGriefing", "Whether creepers, zombies, endermen, ghasts, withers, rabbits, sheep, and villagers should be able to change blocks and whether villagers, zombies, skeletons, and zombie pigmen can pick up items");
@@ -57,55 +65,77 @@ public class Config extends Configuration {
         comments.put("spawnRadius", "The number of blocks outward from the world spawn coordinates that a player will spawn in when first joining a server or when dying without a spawnpoint.");
         comments.put("disableElytraMovementCheck", "Whether the server should skip checking player speed when the player is wearing elytra.");
 
-        addCustomCategoryComment(CATEGORY_GAMERULES, "Set the values to 'true' or 'false' depending if you want to have the GameRule enabled or disabled");
+        comments.put(MISC_WORLDDIFFICULTY, "Sets the difficulty of a world when loaded, respects it the difficulty is locked or not for the world\n-1: Disabled\n0: Peaceful\n1: Easy\n2: Normal\n3: Hard");
+        comments.put(MISC_WORLDDIFFICULTYLOCK, "If a world's difficulty should be locked when loaded, if world already is locked it can't be change\nIf the global world difficulty is enabled it's set first");
+
+        addCustomCategoryComment(CATEGORY_GAMERULES, "Set the values to ('true'/'false' or an integer value) depending if you want to have the GameRule (enabled/disabled or have a different value)");
+        addCustomCategoryComment(CATEGORY_MISC, "A collection of misc configs");
         defaults = (HashMap<String, Value>) rules.clone();
+        defaults.putAll((Map<? extends String, ? extends Value>) misc.clone());
     }
 
     public Config loadConfig() {
         load();
         syncConfigs();
+        saveConfig();
         save();
         return this;
     }
 
     public void saveConfig() {
-        ConfigCategory cat = getCategory(CATEGORY_GAMERULES);
-        for (Map.Entry<String, Value> entry : rules.entrySet()) {
-            String rule = entry.getKey();
-            Config.Value state = entry.getValue();
-
-            Property prop = cat.get(rule);
-            if (state.getType().equals(ValueType.BOOLEAN))
-                prop.setValue(state.getBooleanValue());
-            else
-                prop.setValue(state.getIntegerValue());
-            cat.put(rule, prop);
-        }
+        ConfigCategory ruleCat = getCategory(CATEGORY_GAMERULES);
+        setValueToProp(ruleCat, rules);
+        ConfigCategory miscCat = getCategory(CATEGORY_MISC);
+        setValueToProp(miscCat, misc);
 
         if (hasChanged())
             save();
     }
 
-    public void syncConfigs() {
-        for (Map.Entry<String, Value> entry : rules.entrySet()) {
-            String rule = entry.getKey();
-            Value state = entry.getValue();
-            String val;
-            if (state.getType().equals(ValueType.BOOLEAN))
-                val = String.valueOf(get(CATEGORY_GAMERULES, rule, defaults.get(rule).getBooleanValue(), comments.get(rule)).getBoolean());
-            else
-                val = String.valueOf(get(CATEGORY_GAMERULES, rule, defaults.get(rule).getIntegerValue(), comments.get(rule)).getInt());
+    private void setValueToProp(ConfigCategory cat, HashMap<String, Value> list) {
+        for (Map.Entry<String, Value> entry : list.entrySet()) {
+            String key = entry.getKey();
+            Config.Value val = entry.getValue();
 
-            rules.put(rule, new Value(val, state.getType()));
+            Property prop = cat.get(key);
+            if (val.getType().equals(ValueType.BOOLEAN))
+                prop.setValue(val.getBooleanValue());
+            else
+                prop.setValue(val.getIntegerValue());
+
+            prop.setRequiresWorldRestart(true);
+            prop.setShowInGui(val.getShowInGui());
+
+            cat.put(key, prop);
         }
+    }
+
+
+    public void syncConfigs() {
+        syncConfigs(rules, CATEGORY_GAMERULES);
+        syncConfigs(misc, CATEGORY_MISC);
 
         if (hasChanged())
             save();
+    }
+
+    private void syncConfigs(HashMap<String, Value> list, String cat) {
+        for (Map.Entry<String, Value> entry : list.entrySet()) {
+            String key = entry.getKey();
+            Value val = entry.getValue();
+            String newVal;
+            if (val.getType().equals(ValueType.BOOLEAN))
+                newVal = String.valueOf(get(cat, key, defaults.get(key).getBooleanValue(), comments.get(key)).getBoolean());
+            else
+                newVal = String.valueOf(get(cat, key, defaults.get(key).getIntegerValue(), comments.get(key)).getInt());
+
+            list.put(key, new Value(newVal, val.getType(), val.getShowInGui()));
+        }
     }
 
     @SubscribeEvent
     public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
-        if (event.getModID().equals(GlobalGR.MODID))
+        if (event.getModID().equals(Reference.MODID))
             syncConfigs();
     }
 
@@ -114,19 +144,25 @@ public class Config extends Configuration {
         INTEGER;
     }
 
-    public static class Value {
+    public static class Value implements Cloneable {
 
         private String stringValue;
         private int integerValue;
         private boolean booleanValue;
+        private boolean showInGui;
         private ValueType type;
 
         public Value(String s, ValueType type) {
+            this(s, type, true);
+        }
+
+        public Value(String s, ValueType type, boolean showInGui) {
             this.type = type;
+            this.showInGui = showInGui;
             setValue(s);
         }
 
-        public void setValue(String s) {
+        public Value setValue(String s) {
 
             this.stringValue = s;
             this.booleanValue = Boolean.parseBoolean(s);
@@ -136,6 +172,8 @@ public class Config extends Configuration {
                 this.integerValue = Integer.parseInt(s);
             } catch (NumberFormatException ignored) {
             }
+
+            return this;
         }
 
         public int getIntegerValue() {
@@ -150,8 +188,17 @@ public class Config extends Configuration {
             return stringValue;
         }
 
+        public boolean getShowInGui() {
+            return showInGui;
+        }
+
         public ValueType getType() {
             return type;
+        }
+
+        @Override
+        protected Value clone() throws CloneNotSupportedException {
+            return (Value) super.clone();
         }
     }
 
