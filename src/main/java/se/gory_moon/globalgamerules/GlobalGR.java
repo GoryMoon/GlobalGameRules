@@ -7,7 +7,7 @@ import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import se.gory_moon.globalgamerules.config.Config;
+import se.gory_moon.globalgamerules.config.GGRConfig;
 import se.gory_moon.globalgamerules.proxy.CommonProxy;
 import se.gory_moon.globalgamerules.reference.Reference;
 
@@ -20,12 +20,12 @@ public class GlobalGR {
     @SidedProxy(clientSide = Reference.PROXY_CLIENT, serverSide = Reference.PROXY_SERVER)
     private static CommonProxy proxy;
 
-    private Config config;
+    private GGRConfig GGRConfig;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         Reference.logger = event.getModLog();
-        config = new Config(event.getSuggestedConfigurationFile()).loadConfig();
+        GGRConfig = new GGRConfig(event.getSuggestedConfigurationFile()).loadConfig();
         proxy.setConfigEntryClasses();
     }
 
@@ -38,7 +38,7 @@ public class GlobalGR {
         return instance;
     }
 
-    public static Config getConfig() {
-        return instance.config;
+    public static GGRConfig getConfig() {
+        return instance.GGRConfig;
     }
 }

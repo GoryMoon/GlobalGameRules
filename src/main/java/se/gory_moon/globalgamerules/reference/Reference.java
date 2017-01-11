@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 public class Reference {
 
-    public static final String MODID = "GlobalGameRules";
+    public static final String MODID = "globalgamerules";
     public static final String NAME = "Global GameRules";
     public static final String VERSION = "@MOD_VERSION@";
 
@@ -14,6 +14,6 @@ public class Reference {
 
     public static final String GUI_FACTORY = "se.gory_moon.globalgamerules.config.GGRGuiFactory";
 
-    public static Logger logger = LogManager.getLogger(Reference.MODID);
+    public static Logger logger = LogManager.getLogger(NAME.replace(" ", ""));
 
 }

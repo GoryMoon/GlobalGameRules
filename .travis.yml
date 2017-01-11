@@ -1,10 +1,23 @@
 language: java
-jdk: openjdk7
+jdk: oraclejdk8
+before_install:
+  - chmod +x gradlew
+sudo: false
 notifications:
   email: false
 env:
   global:
     - TERM=dumb
-
+    - GRADLE_OPTS=-Xmx1G
+before_cache:
+  - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -f $HOME/.gradle/caches/minecraft/ForgeVersion.json
+  - rm -f $HOME/.gradle/caches/minecraft/ForgeVersion.json
+  - rm -rf $HOME/.gradle/caches/minecraft/deobfedDeps
+cache:
+  directories:
+    - ./libs
+    - $HOME/.gradle/caches
+    - $HOME/.gradle/wrapper
 install: ./gradlew setupCIWorkspace -S
 script: ./gradlew build -S

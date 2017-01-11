@@ -27,10 +27,10 @@ public class GGRConfigGUI extends GuiConfig {
     private static List<IConfigElement> getConfigElements() {
         List<IConfigElement> list = new ArrayList<IConfigElement>();
 
-        list.add(new DummyConfigElement.DummyCategoryElement(Config.CATEGORY_GAMERULES, "ggr.configgui.rules",
-                (new ConfigElement(GlobalGR.getConfig().getCategory(Config.CATEGORY_GAMERULES))).getChildElements(), GuiConfigEntries.CategoryEntry.class));
-        list.add(new DummyConfigElement.DummyCategoryElement(Config.CATEGORY_MISC, "ggr.configgui.misc",
-                (new ConfigElement(GlobalGR.getConfig().getCategory(Config.CATEGORY_MISC))).getChildElements(), GuiConfigEntries.CategoryEntry.class));
+        list.add(new DummyConfigElement.DummyCategoryElement(GGRConfig.CATEGORY_GAMERULES, "ggr.configgui.rules",
+                (new ConfigElement(GlobalGR.getConfig().getCategory(GGRConfig.CATEGORY_GAMERULES))).getChildElements(), GuiConfigEntries.CategoryEntry.class));
+        list.add(new DummyConfigElement.DummyCategoryElement(GGRConfig.CATEGORY_MISC, "ggr.configgui.misc",
+                (new ConfigElement(GlobalGR.getConfig().getCategory(GGRConfig.CATEGORY_MISC))).getChildElements(), GuiConfigEntries.CategoryEntry.class));
         return list;
     }
 

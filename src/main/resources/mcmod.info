@@ -1,6 +1,6 @@
 [
 {
-  "modid": "GlobalGameRules",
+  "modid": "globalgamerules",
   "name": "Global GameRules",
   "description": "A mod that allows for global gamerules when a world is loaded",
   "version": "${version}",
