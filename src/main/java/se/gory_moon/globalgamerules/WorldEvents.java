@@ -47,7 +47,7 @@ public class WorldEvents {
         GlobalGR.getConfig().rules.forEach((s, value) -> GlobalGR.getConfig().rules.put(s, new GGRConfig.Value(gRules.getString(s), value.getType())));
 
 
-        if (!event.getWorld().isRemote && GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY).getIntegerValue() != -1) {
+        if (!event.getWorld().isRemote && GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY).getIntegerValue() != -1 && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
             GGRConfig.Value val = GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY);
             GGRConfig.Value newVal = new GGRConfig.Value(String.valueOf(info.getDifficulty().getDifficultyId()), val.getType(), val.getShowInGui());
             GlobalGR.getConfig().misc.put(GGRConfig.MISC_WORLDDIFFICULTY, newVal);
@@ -55,5 +55,4 @@ public class WorldEvents {
 
         GlobalGR.getConfig().saveConfig();
     }
-
 }

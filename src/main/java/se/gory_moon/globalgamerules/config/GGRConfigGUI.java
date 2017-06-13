@@ -42,9 +42,9 @@ public class GGRConfigGUI extends GuiConfig {
         private static Map<Object, String> getSelectableValues() {
             Map<Object, String> selectableValues = new HashMap<Object, String>();
 
-            selectableValues.put(-1, I18n.format("ggr.configgui.diffDisabled"));
+            selectableValues.put("-1", I18n.format("ggr.configgui.diffDisabled"));
             for (EnumDifficulty ed: EnumDifficulty.values())
-                selectableValues.put(ed.getDifficultyId(), I18n.format(ed.getDifficultyResourceKey()));
+                selectableValues.put(String.valueOf(ed.getDifficultyId()), I18n.format(ed.getDifficultyResourceKey()));
 
             return selectableValues;
         }

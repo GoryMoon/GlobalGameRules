@@ -30,12 +30,15 @@ public class GGRConfig extends Configuration {
         rules.put("doDaylightCycle",            defaultValue(true));
         rules.put("doEntityDrops",              defaultValue(true));
         rules.put("doFireTick",                 defaultValue(true));
+        rules.put("doLimitedCrafting",          defaultValue(false));
         rules.put("doMobLoot",                  defaultValue(true));
         rules.put("doMobSpawning",              defaultValue(true));
         rules.put("doTileDrops",                defaultValue(true));
         rules.put("doWeatherCycle",             defaultValue(true));
+        rules.put("gameLoopFunction",           defaultValue("-"));
         rules.put("keepInventory",              defaultValue(false));
         rules.put("logAdminCommands",           defaultValue(true));
+        rules.put("maxCommandChainLength",      defaultValue(65536));
         rules.put("maxEntityCramming",          defaultValue(24));
         rules.put("mobGriefing",                defaultValue(true));
         rules.put("naturalRegeneration",        defaultValue(true));
@@ -46,6 +49,8 @@ public class GGRConfig extends Configuration {
         rules.put("spawnRadius",                defaultValue(10));
         rules.put("spectatorsGenerateChunks",   defaultValue(true));
 
+        rules.put("announceAdvancements",       defaultValue(true));
+
         misc.put(MISC_WORLDDIFFICULTY,          defaultValue(-1));
         misc.put(MISC_WORLDDIFFICULTYLOCK,      defaultValue(false));
 
@@ -55,12 +60,15 @@ public class GGRConfig extends Configuration {
         comments.put("doDaylightCycle",             "Whether the day-night cycle and moon phases progress");
         comments.put("doEntityDrops",               "Whether entities that are not mobs should have drops");
         comments.put("doFireTick",                  "Whether fire should spread and naturally extinguish");
+        comments.put("doLimitedCrafting",           "Whether players should only be able to craft recipes that they've unlocked first");
         comments.put("doMobLoot",                   "Whether mobs should drop items");
         comments.put("doMobSpawning",               "Whether mobs should naturally spawn");
         comments.put("doTileDrops",                 "Whether blocks should have drops");
         comments.put("doWeatherCycle",              "Whether the weather will change");
+        comments.put("gameLoopFunction",            "The function to run every game tick");
         comments.put("keepInventory",               "Whether the player should keep items in their inventory after death");
         comments.put("logAdminCommands",            "Whether to log admin commands to server log");
+        comments.put("maxCommandCainLength",        "Determines the number at which the chain command block acts as a \"chain\".");
         comments.put("maxEntityCramming",           "The maximum number of other pushable entities a mob or player can push, before taking 3 suffocation damage\nper half-second. Setting to 0 disables the rule. Damage affects survival-mode "+
                                                     "or adventure-mode players, and all mobs but bats.\nPushable entities include non-spectator-mode players, any mob except bats, as well as boats and minecarts.");
         comments.put("mobGriefing",                 "Whether creepers, zombies, endermen, ghasts, withers, ender dragons, rabbits, sheep, and villagers should be able to change blocks\nand whether villagers, zombies, skeletons, and zombie pigmen can pick up items");
@@ -72,11 +80,13 @@ public class GGRConfig extends Configuration {
         comments.put("spawnRadius",                 "The number of blocks outward from the world spawn coordinates that a player will spawn in when first joining a server or when dying without a spawnpoint.");
         comments.put("spectatorsGenerateChunks",    "Whether players in spectator mode can generate chunks");
 
+        comments.put("announceAdvancements",        "If an announcement when a player gets an advancement should be done");
+
         comments.put(MISC_WORLDDIFFICULTY,          "Sets the difficulty of a world when loaded, respects it the difficulty is locked or not for the world\n-1: Disabled\n0: Peaceful\n1: Easy\n2: Normal\n3: Hard");
         comments.put(MISC_WORLDDIFFICULTYLOCK,      "If a world's difficulty should be locked when loaded, if world already is locked it can't be change\nIf the global world difficulty is enabled it's set first");
 
 
-        addCustomCategoryComment(CATEGORY_GAMERULES,    "Set the values to ('true'/'false' or an integer defaultValue) depending if you want to have the GameRule (enabled/disabled or have a different defaultValue)");
+        addCustomCategoryComment(CATEGORY_GAMERULES,    "Set the values to ('true'/'false'/an integer or a string defaultValue) depending if you want to have the GameRule (enabled/disabled or have a different defaultValue)");
         addCustomCategoryComment(CATEGORY_MISC,         "A collection of misc configs");
         defaults = (HashMap<String, Value>) rules.clone();
         defaults.putAll((Map<? extends String, ? extends Value>) misc.clone());
@@ -88,6 +98,10 @@ public class GGRConfig extends Configuration {
 
     private Value defaultValue(int val) {
         return new Value(Integer.toString(val), ValueType.INTEGER);
+    }
+
+    private Value defaultValue(String val) {
+        return new Value(val, ValueType.STRING);
     }
 
     public GGRConfig loadConfig() {
@@ -111,13 +125,17 @@ public class GGRConfig extends Configuration {
     private void setValueToProp(ConfigCategory cat, HashMap<String, Value> list) {
         list.forEach((s, value) ->
             cat.put(s,
-                value.getType().equals(ValueType.BOOLEAN)?
+                value.getType().equals(ValueType.BOOLEAN) ?
                     cat.get(s).setValue(value.getBooleanValue())
                             .setRequiresWorldRestart(true)
-                            .setShowInGui(value.getShowInGui()):
-                    cat.get(s).setValue(value.getIntegerValue())
-                            .setRequiresWorldRestart(true)
-                            .setShowInGui(value.getShowInGui())
+                            .setShowInGui(value.getShowInGui()) :
+                    value.getType().equals(ValueType.INTEGER) ?
+                        cat.get(s).setValue(value.getIntegerValue())
+                                .setRequiresWorldRestart(true)
+                                .setShowInGui(value.getShowInGui()) :
+                        cat.get(s).setValue(value.getStringValue())
+                                .setRequiresWorldRestart(true)
+                                .setShowInGui(value.getShowInGui())
             )
         );
     }
@@ -136,7 +154,9 @@ public class GGRConfig extends Configuration {
             new Value(
                     value.getType().equals(ValueType.BOOLEAN) ?
                             String.valueOf(get(cat, s, defaults.get(s).getBooleanValue(), comments.get(s)).getBoolean()):
-                            String.valueOf(get(cat, s, defaults.get(s).getIntegerValue(), comments.get(s)).getInt()),
+                            value.getType().equals(ValueType.INTEGER) ?
+                                String.valueOf(get(cat, s, defaults.get(s).getIntegerValue(), comments.get(s)).getInt()):
+                                get(cat, s, defaults.get(s).getStringValue(), comments.get(s)).getString(),
                     value.getType(),
                     value.getShowInGui()
             )
@@ -151,7 +171,8 @@ public class GGRConfig extends Configuration {
 
     public enum ValueType {
         BOOLEAN,
-        INTEGER;
+        INTEGER,
+        STRING;
     }
 
     public static class Value implements Cloneable {
