@@ -46,7 +46,7 @@ minecraft {
     // stable_#            stables are built at the discretion of the MCP team.
     // Use non-default mappings at your own risk. they may not allways work.
     // simply re-run your setup task after changing the mappings to update your workspace.
-	mappings = "snapshot_20170613"
+	mappings = "snapshot_20170614"
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 
     replaceIn "Reference.java"
@@ -115,12 +115,17 @@ uploadArchives {
     if (project.hasProperty("maven_url")) {
         repositories {
             mavenDeployer {
-                println 'Publishing to files server'
+                if (project.hasProperty("maven_url")) {
+                    logger.info('Publishing to files server')
+                    configuration = configurations.deployerJars
 
-                configuration = configurations.deployerJars
-                repository(url: project.maven_url) {
-                    authentication(userName: project.maven_username, password: project.maven_password)
+                    repository(url: project.maven_url) {
+                        authentication(userName: project.maven_username ?: "", password: project.maven_password ?: "")
+                    }
+                } else if (project.hasProperty("local_maven")) {
+                    repository(url: "file://${project.getProperty('local_maven')}")
                 }
+
                 pom {
                     groupId = project.group
                     version = project.version
