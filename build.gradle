@@ -112,58 +112,56 @@ artifacts {
 }
 
 uploadArchives {
-    if (project.hasProperty("maven_url")) {
-        repositories {
-            mavenDeployer {
-                if (project.hasProperty("maven_url")) {
-                    logger.info('Publishing to files server')
-                    configuration = configurations.deployerJars
+    repositories {
+        mavenDeployer {
+            if (project.hasProperty("maven_url")) {
+                logger.info('Publishing to files server')
+                configuration = configurations.deployerJars
 
-                    repository(url: project.maven_url) {
-                        authentication(userName: project.maven_username ?: "", password: project.maven_password ?: "")
-                    }
-                } else if (project.hasProperty("local_maven")) {
-                    repository(url: "file://${project.getProperty('local_maven')}")
+                repository(url: project.maven_url) {
+                    authentication(userName: project.maven_username ?: "", password: project.maven_password ?: "")
                 }
+            } else if (project.hasProperty("local_maven")) {
+                repository(url: "file://${project.getProperty('local_maven')}")
+            }
 
-                pom {
-                    groupId = project.group
-                    version = project.version
-                    artifactId = project.archivesBaseName
-                }
+            pom {
+                groupId = project.group
+                version = project.version
+                artifactId = project.archivesBaseName
+            }
 
-                pom.project {
-                    name project.archivesBaseName
-                    packaging 'jar'
-                    description 'GlobalGameRules'
+            pom.project {
+                name project.archivesBaseName
+                packaging 'jar'
+                description 'GlobalGameRules'
+                url 'https://github.com/GoryMoon/GlobalGameRules/'
+
+                scm {
                     url 'https://github.com/GoryMoon/GlobalGameRules/'
+                    connection 'scm:git:git://github.com/GoryMoon/GlobalGameRules.git'
+                    developerConnection 'scm:git:git@github.com/GoryMoon/GlobalGameRules.git'
+                }
 
-                    scm {
-                        url 'https://github.com/GoryMoon/GlobalGameRules/'
-                        connection 'scm:git:git://github.com/GoryMoon/GlobalGameRules.git'
-                        developerConnection 'scm:git:git@github.com/GoryMoon/GlobalGameRules.git'
+                issueManagement {
+                    system 'github'
+                    url 'https://github.com/GoryMoon/GlobalGameRules/issues'
+                }
+
+                licenses {
+                    license {
+                        name 'GNU Lesser General Public License 3.0'
+                        url 'https://www.gnu.org/licenses/lgpl-3.0.txt'
+                        distribution 'repo'
                     }
+                }
 
-                    issueManagement {
-                        system 'github'
-                        url 'https://github.com/GoryMoon/GlobalGameRules/issues'
-                    }
-
-                    licenses {
-                        license {
-                            name 'GNU Lesser General Public License 3.0'
-                            url 'https://www.gnu.org/licenses/lgpl-3.0.txt'
-                            distribution 'repo'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'Gory_Moon'
-                            name 'Gory_Moon'
-                            roles {
-                                role 'developer'
-                            }
+                developers {
+                    developer {
+                        id 'Gory_Moon'
+                        name 'Gory_Moon'
+                        roles {
+                            role 'developer'
                         }
                     }
                 }
