@@ -10,6 +10,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import se.gory_moon.globalgamerules.config.GGRConfig;
 import se.gory_moon.globalgamerules.reference.Reference;
 
+import java.util.Arrays;
+
 @Mod.EventBusSubscriber(modid = Reference.MODID)
 public class WorldEvents {
 
@@ -43,16 +45,31 @@ public class WorldEvents {
         WorldInfo info = world.getWorldInfo();
         GameRules gRules = event.getWorld().getGameRules();
 
-        Reference.logger.info("Saving gamerules of dimension {} ({}) to config", world.provider.getDimension(), info.getWorldName());
-        GlobalGR.getConfig().rules.forEach((s, value) -> GlobalGR.getConfig().rules.put(s, new GGRConfig.Value(gRules.getString(s), value.getType())));
+        if (GlobalGR.getConfig().misc.get(GGRConfig.MISC_SAVEGAMRULES).getBooleanValue()) {
+            Reference.logger.info("Saving gamerules of dimension {} ({}) to config", world.provider.getDimension(), info.getWorldName());
+            Arrays.stream(gRules.getRules()).forEach(s -> GlobalGR.getConfig().rules.put(s, new GGRConfig.Value(gRules.getString(s), getType(gRules, s))));
 
 
-        if (!event.getWorld().isRemote && GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY).getIntegerValue() != -1 && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
-            GGRConfig.Value val = GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY);
-            GGRConfig.Value newVal = new GGRConfig.Value(String.valueOf(info.getDifficulty().getDifficultyId()), val.getType(), val.getShowInGui());
-            GlobalGR.getConfig().misc.put(GGRConfig.MISC_WORLDDIFFICULTY, newVal);
+            if (!event.getWorld().isRemote && GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY).getIntegerValue() != -1 && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
+                GGRConfig.Value val = GlobalGR.getConfig().misc.get(GGRConfig.MISC_WORLDDIFFICULTY);
+                GGRConfig.Value newVal = new GGRConfig.Value(String.valueOf(info.getDifficulty().getDifficultyId()), val.getType(), val.getShowInGui());
+                GlobalGR.getConfig().misc.put(GGRConfig.MISC_WORLDDIFFICULTY, newVal);
+            }
+        }
+
+        if (!GlobalGR.getConfig().misc.get(GGRConfig.MISC_SAVEGAMRULES).getBooleanValue()) {
+            Arrays.stream(gRules.getRules()).filter(s -> !GlobalGR.getConfig().rules.containsKey(s)).forEach(s -> GlobalGR.getConfig().rules.put(s, new GGRConfig.Value(gRules.getString(s), getType(gRules, s))));
         }
 
         GlobalGR.getConfig().saveConfig();
+    }
+
+    public static GGRConfig.ValueType getType(GameRules rules, String s) {
+        if (rules.areSameType(s, GameRules.ValueType.BOOLEAN_VALUE))
+            return GGRConfig.ValueType.BOOLEAN;
+        else if (rules.areSameType(s, GameRules.ValueType.NUMERICAL_VALUE))
+            return GGRConfig.ValueType.INTEGER;
+        else
+            return GGRConfig.ValueType.STRING;
     }
 }

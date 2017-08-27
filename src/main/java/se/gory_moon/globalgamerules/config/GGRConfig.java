@@ -2,6 +2,7 @@ package se.gory_moon.globalgamerules.config;
 
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import se.gory_moon.globalgamerules.reference.Reference;
@@ -17,6 +18,7 @@ public class GGRConfig extends Configuration {
 
     public static final String MISC_WORLDDIFFICULTY = "worldDifficulty";
     public static final String MISC_WORLDDIFFICULTYLOCK = "worldDifficultyLocked";
+    public static final String MISC_SAVEGAMRULES = "saveGameRules";
 
     public HashMap<String, Value> rules = new HashMap<>();
     public HashMap<String, Value> misc = new HashMap<>();
@@ -53,6 +55,7 @@ public class GGRConfig extends Configuration {
 
         misc.put(MISC_WORLDDIFFICULTY,          defaultValue(-1));
         misc.put(MISC_WORLDDIFFICULTYLOCK,      defaultValue(false));
+        misc.put(MISC_SAVEGAMRULES,             new Value("true", ValueType.BOOLEAN, true, false));
 
 
         comments.put("commandBlockOutput",          "Whether command blocks should notify admins when they perform commands");
@@ -68,7 +71,7 @@ public class GGRConfig extends Configuration {
         comments.put("gameLoopFunction",            "The function to run every game tick");
         comments.put("keepInventory",               "Whether the player should keep items in their inventory after death");
         comments.put("logAdminCommands",            "Whether to log admin commands to server log");
-        comments.put("maxCommandCainLength",        "Determines the number at which the chain command block acts as a \"chain\".");
+        comments.put("maxCommandChainLength",        "Determines the number at which the chain command block acts as a \"chain\".");
         comments.put("maxEntityCramming",           "The maximum number of other pushable entities a mob or player can push, before taking 3 suffocation damage\nper half-second. Setting to 0 disables the rule. Damage affects survival-mode "+
                                                     "or adventure-mode players, and all mobs but bats.\nPushable entities include non-spectator-mode players, any mob except bats, as well as boats and minecarts.");
         comments.put("mobGriefing",                 "Whether creepers, zombies, endermen, ghasts, withers, ender dragons, rabbits, sheep, and villagers should be able to change blocks\nand whether villagers, zombies, skeletons, and zombie pigmen can pick up items");
@@ -84,7 +87,7 @@ public class GGRConfig extends Configuration {
 
         comments.put(MISC_WORLDDIFFICULTY,          "Sets the difficulty of a world when loaded, respects it the difficulty is locked or not for the world\n-1: Disabled\n0: Peaceful\n1: Easy\n2: Normal\n3: Hard");
         comments.put(MISC_WORLDDIFFICULTYLOCK,      "If a world's difficulty should be locked when loaded, if world already is locked it can't be change\nIf the global world difficulty is enabled it's set first");
-
+        comments.put(MISC_SAVEGAMRULES,             "If gamerules and world difficulty should be saved to config on world unload");
 
         addCustomCategoryComment(CATEGORY_GAMERULES,    "Set the values to ('true'/'false'/an integer or a string defaultValue) depending if you want to have the GameRule (enabled/disabled or have a different defaultValue)");
         addCustomCategoryComment(CATEGORY_MISC,         "A collection of misc configs");
@@ -123,44 +126,54 @@ public class GGRConfig extends Configuration {
     }
 
     private void setValueToProp(ConfigCategory cat, HashMap<String, Value> list) {
-        list.forEach((s, value) ->
-            cat.put(s,
-                value.getType().equals(ValueType.BOOLEAN) ?
-                    cat.get(s).setValue(value.getBooleanValue())
-                            .setRequiresWorldRestart(true)
-                            .setShowInGui(value.getShowInGui()) :
-                    value.getType().equals(ValueType.INTEGER) ?
-                        cat.get(s).setValue(value.getIntegerValue())
-                                .setRequiresWorldRestart(true)
-                                .setShowInGui(value.getShowInGui()) :
-                        cat.get(s).setValue(value.getStringValue())
-                                .setRequiresWorldRestart(true)
-                                .setShowInGui(value.getShowInGui())
-            )
-        );
+        list.forEach((s, value) -> {
+            if (cat.containsKey(s))
+                cat.put(s,
+                    value.getType().equals(ValueType.BOOLEAN) ?
+                            cat.get(s).setValue(value.getBooleanValue())
+                                    .setRequiresWorldRestart(value.getRequireWorldRestart())
+                                    .setShowInGui(value.getShowInGui()) :
+                            value.getType().equals(ValueType.INTEGER) ?
+                                    cat.get(s).setValue(value.getIntegerValue())
+                                            .setRequiresWorldRestart(value.getRequireWorldRestart())
+                                            .setShowInGui(value.getShowInGui()) :
+                                    cat.get(s).setValue(value.getStringValue())
+                                            .setRequiresWorldRestart(value.getRequireWorldRestart())
+                                            .setShowInGui(value.getShowInGui())
+                );
+            else
+                get(cat.getQualifiedName(), s, value.getStringValue(), "GameRule added by another mod or from commands")
+                        .setRequiresWorldRestart(value.getRequireWorldRestart())
+                        .setShowInGui(value.getShowInGui());
+        });
     }
 
 
     public void syncConfigs() {
-        syncConfigs(rules, CATEGORY_GAMERULES);
-        syncConfigs(misc, CATEGORY_MISC);
+        syncConfigs(getCategory(CATEGORY_GAMERULES).getValues(), rules, CATEGORY_GAMERULES);
+        syncConfigs(getCategory(CATEGORY_MISC).getValues(), misc, CATEGORY_MISC);
 
         if (hasChanged())
             save();
     }
 
-    private void syncConfigs(HashMap<String, Value> list, String cat) {
-        list.forEach((s, value) -> list.put(s,
+    private void syncConfigs(Map<String, Property> values, HashMap<String, Value> list, String cat) {
+        values.forEach((s, value) -> list.put(s,
             new Value(
-                    value.getType().equals(ValueType.BOOLEAN) ?
-                            String.valueOf(get(cat, s, defaults.get(s).getBooleanValue(), comments.get(s)).getBoolean()):
-                            value.getType().equals(ValueType.INTEGER) ?
-                                String.valueOf(get(cat, s, defaults.get(s).getIntegerValue(), comments.get(s)).getInt()):
-                                get(cat, s, defaults.get(s).getStringValue(), comments.get(s)).getString(),
-                    value.getType(),
-                    value.getShowInGui()
+                    value.getType().equals(Property.Type.BOOLEAN) ?
+                            String.valueOf(get(cat, s, defaults.get(s).getBooleanValue(), getComment(s)).getBoolean()):
+                            value.getType().equals(Property.Type.INTEGER) ?
+                                String.valueOf(get(cat, s, defaults.get(s).getIntegerValue(), getComment(s)).getInt()):
+                                get(cat, s, defaults.get(s) != null ? defaults.get(s).getStringValue(): value.getString(), getComment(s)).getString(),
+                    value.getType().equals(Property.Type.BOOLEAN) ? ValueType.BOOLEAN:  value.getType().equals(Property.Type.INTEGER) ? ValueType.INTEGER: ValueType.STRING,
+                    list.get(s) != null ? list.get(s).getShowInGui(): value.showInGui(),
+                    list.get(s) != null ? list.get(s).getRequireWorldRestart(): CATEGORY_GAMERULES.equals(cat) || value.requiresWorldRestart()
             )
         ));
+    }
+
+    private String getComment(String s) {
+        return comments.get(s) != null ? comments.get(s): "GameRule added by another mod or from commands";
     }
 
     @SubscribeEvent
@@ -181,6 +194,7 @@ public class GGRConfig extends Configuration {
         private int integerValue;
         private boolean booleanValue;
         private boolean showInGui;
+        private boolean requireWorldRestart;
         private ValueType type;
 
         public Value(String s, ValueType type) {
@@ -188,8 +202,13 @@ public class GGRConfig extends Configuration {
         }
 
         public Value(String s, ValueType type, boolean showInGui) {
+            this(s, type, showInGui, true);
+        }
+
+        public Value(String s, ValueType type, boolean showInGui, boolean requireWorldRestart) {
             this.type = type;
             this.showInGui = showInGui;
+            this.requireWorldRestart = requireWorldRestart;
             setValue(s);
         }
 
@@ -220,6 +239,10 @@ public class GGRConfig extends Configuration {
 
         public boolean getShowInGui() {
             return showInGui;
+        }
+
+        public boolean getRequireWorldRestart() {
+            return requireWorldRestart;
         }
 
         public ValueType getType() {

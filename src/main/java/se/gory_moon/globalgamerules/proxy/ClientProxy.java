@@ -11,7 +11,8 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void setConfigEntryClasses() {
         GlobalGR.getConfig().get(GGRConfig.CATEGORY_MISC, MISC_WORLDDIFFICULTY,
-                GlobalGR.getConfig().defaults.get(MISC_WORLDDIFFICULTY).getIntegerValue()).setConfigEntryClass(GGRConfigGUI.DifficultyEntry.class);
+                GlobalGR.getConfig().defaults.get(MISC_WORLDDIFFICULTY).getIntegerValue(),
+                GlobalGR.getConfig().comments.get(MISC_WORLDDIFFICULTY)).setConfigEntryClass(GGRConfigGUI.DifficultyEntry.class);
     }
 
     @Override

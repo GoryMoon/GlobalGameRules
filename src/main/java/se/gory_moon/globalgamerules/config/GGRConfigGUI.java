@@ -21,7 +21,7 @@ public class GGRConfigGUI extends GuiConfig {
     public GGRConfigGUI(GuiScreen parentScreen) {
         super(parentScreen,
                 getConfigElements(),
-                Reference.MODID, true, false, GuiConfig.getAbridgedConfigPath(GlobalGR.getConfig().toString()));
+                Reference.MODID, false, false, GuiConfig.getAbridgedConfigPath(GlobalGR.getConfig().toString()));
     }
 
     private static List<IConfigElement> getConfigElements() {
