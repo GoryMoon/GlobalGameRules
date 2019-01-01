@@ -5,11 +5,15 @@ import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import se.gory_moon.globalgamerules.reference.Reference;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class GGRConfig extends Configuration {
 
@@ -19,11 +23,13 @@ public class GGRConfig extends Configuration {
     public static final String MISC_WORLDDIFFICULTY = "worldDifficulty";
     public static final String MISC_WORLDDIFFICULTYLOCK = "worldDifficultyLocked";
     public static final String MISC_SAVEGAMRULES = "saveGameRules";
+    public static final String MISC_CUSTOMGAMERULES = "customGamerules";
 
     public HashMap<String, Value> rules = new HashMap<>();
     public HashMap<String, Value> misc = new HashMap<>();
     public HashMap<String, Value> defaults;
     public HashMap<String, String> comments = new HashMap<>();
+    public HashMap<String, Pair<String, Value>> custom = new HashMap<>();
 
     public GGRConfig(File name) {
         super(name);
@@ -71,7 +77,7 @@ public class GGRConfig extends Configuration {
         comments.put("gameLoopFunction",            "The function to run every game tick");
         comments.put("keepInventory",               "Whether the player should keep items in their inventory after death");
         comments.put("logAdminCommands",            "Whether to log admin commands to server log");
-        comments.put("maxCommandChainLength",        "Determines the number at which the chain command block acts as a \"chain\".");
+        comments.put("maxCommandChainLength",       "Determines the number at which the chain command block acts as a \"chain\".");
         comments.put("maxEntityCramming",           "The maximum number of other pushable entities a mob or player can push, before taking 3 suffocation damage\nper half-second. Setting to 0 disables the rule. Damage affects survival-mode "+
                                                     "or adventure-mode players, and all mobs but bats.\nPushable entities include non-spectator-mode players, any mob except bats, as well as boats and minecarts.");
         comments.put("mobGriefing",                 "Whether creepers, zombies, endermen, ghasts, withers, ender dragons, rabbits, sheep, and villagers should be able to change blocks\nand whether villagers, zombies, skeletons, and zombie pigmen can pick up items");
@@ -120,6 +126,10 @@ public class GGRConfig extends Configuration {
         setValueToProp(ruleCat, rules);
         ConfigCategory miscCat = getCategory(CATEGORY_MISC);
         setValueToProp(miscCat, misc);
+        String[] vals = custom.entrySet().stream()
+                .map(stringPairEntry -> stringPairEntry.getKey() + "-" + stringPairEntry.getValue().getValue().stringValue + "-" + stringPairEntry.getValue().getKey())
+                .collect(Collectors.toList()).toArray(new String[]{});
+        miscCat.get(MISC_CUSTOMGAMERULES).setValues(vals);
 
         if (hasChanged())
             save();
@@ -152,12 +162,32 @@ public class GGRConfig extends Configuration {
     public void syncConfigs() {
         syncConfigs(getCategory(CATEGORY_GAMERULES).getValues(), rules, CATEGORY_GAMERULES);
         syncConfigs(getCategory(CATEGORY_MISC).getValues(), misc, CATEGORY_MISC);
+        custom.clear();
+        String[] list = get(CATEGORY_MISC, MISC_CUSTOMGAMERULES, new String[]{"GGRExample-false-/tell @p Hello World"}, "Syntax is: name-enabled-command\nenabled is either true or false, all @p will be replaced with the playername").getStringList();
+        for (String s: list) {
+            String[] parts = s.split("-");
+            if (parts.length >= 3 && !parts[0].isEmpty() && !parts[0].contains(" ") && !parts[1].isEmpty() && !parts[1].contains(" ")) {
+                String command = String.join("-", Arrays.copyOfRange(parts, 2, parts.length));
+                custom.put(parts[0], MutablePair.of(command, new Value(parts[1], ValueType.BOOLEAN, true)));
+            } else
+                Reference.logger.error("Malformed custom gamerule: " + s);
+        }
 
         if (hasChanged())
             save();
     }
 
     private void syncConfigs(Map<String, Property> values, HashMap<String, Value> list, String cat) {
+        list.forEach((s, value) -> list.put(s,
+                new Value(
+                        value.getType().equals(ValueType.BOOLEAN) ?
+                                String.valueOf(get(cat, s, defaults.get(s).getBooleanValue(), comments.get(s)).getBoolean()):
+                                value.getType().equals(ValueType.INTEGER) ?
+                                        String.valueOf(get(cat, s, defaults.get(s).getIntegerValue(), comments.get(s)).getInt()):
+                                        get(cat, s, defaults.get(s).getStringValue(), comments.get(s)).getString(),
+                        value.getType(),
+                        value.getShowInGui()
+                )));
         values.forEach((s, value) -> list.put(s,
             new Value(
                     value.getType().equals(Property.Type.BOOLEAN) ?
@@ -212,17 +242,14 @@ public class GGRConfig extends Configuration {
             setValue(s);
         }
 
-        public Value setValue(String s) {
+        private void setValue(String s) {
             this.stringValue = s;
             this.booleanValue = Boolean.parseBoolean(s);
             this.integerValue = this.booleanValue ? 1 : 0;
 
             try {
                 this.integerValue = Integer.parseInt(s);
-            } catch (NumberFormatException ignored) {
-            }
-
-            return this;
+            } catch (NumberFormatException ignored) {}
         }
 
         public int getIntegerValue() {

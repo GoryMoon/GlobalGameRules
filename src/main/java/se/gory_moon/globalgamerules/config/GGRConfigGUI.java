@@ -44,7 +44,7 @@ public class GGRConfigGUI extends GuiConfig {
 
             selectableValues.put("-1", I18n.format("ggr.configgui.diffDisabled"));
             for (EnumDifficulty ed: EnumDifficulty.values())
-                selectableValues.put(String.valueOf(ed.getDifficultyId()), I18n.format(ed.getDifficultyResourceKey()));
+                selectableValues.put(String.valueOf(ed.getId()), I18n.format(ed.getTranslationKey()));
 
             return selectableValues;
         }
@@ -53,7 +53,7 @@ public class GGRConfigGUI extends GuiConfig {
         public void updateValueButtonText() {
             int val = Integer.parseInt(String.valueOf(currentValue));
             if (val > -1)
-                this.btnValue.displayString = I18n.format(EnumDifficulty.getDifficultyEnum(val).getDifficultyResourceKey());
+                this.btnValue.displayString = I18n.format(EnumDifficulty.byId(val).getTranslationKey());
             else
                 this.btnValue.displayString = I18n.format("ggr.configgui.diffDisabled");
         }
