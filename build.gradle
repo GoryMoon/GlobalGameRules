@@ -156,7 +156,7 @@ if (project.hasProperty("local_maven")) {
     publishing {
         publications {
             mavenJava(MavenPublication) {
-                artifactId = project.archivesBaseName
+                version = "$mc_version-${project.getVersion()}"
                 artifact reobfArtifact
                 artifact devJar
                 artifact sourceJar
