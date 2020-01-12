@@ -156,7 +156,10 @@ if (project.hasProperty("local_maven")) {
     publishing {
         publications {
             mavenJava(MavenPublication) {
+                artifactId = project.archivesBaseName
                 artifact reobfArtifact
+                artifact devJar
+                artifact sourceJar
             }
         }
         repositories {
