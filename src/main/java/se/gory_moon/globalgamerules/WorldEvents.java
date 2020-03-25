@@ -49,9 +49,9 @@ public class WorldEvents {
 
         LOGGER.info("Applying config gamerules to dimension {} ({})", world.getDimension().getType().getId(), info.getWorldName());
         HashMap<String, ParsedArgument<CommandSource, ?>> arguments = new HashMap<>();
-        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.func_223576_a(), new ParsedArgument<CommandSource, Object>(0, 0, configValue.get())));
+        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getName(), new ParsedArgument<CommandSource, Object>(0, 0, configValue.get())));
         CommandContext<CommandSource> context = new CommandContext<>(world.getWorld().getServer().getCommandSource(), null, arguments, null, null, null, null, null, null, false);
-        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.get(ruleKey).func_223554_b(context, ruleKey.func_223576_a()));
+        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.get(ruleKey).updateValue(context, ruleKey.getName()));
 
         if (!info.isDifficultyLocked() && GGRConfig.COMMON.setDifficulty.get()) {
             Difficulty diff = GGRConfig.COMMON.difficulty.get();

@@ -48,6 +48,14 @@ public class GGRConfig {
         COMMENTS.put(GameRules.MAX_COMMAND_CHAIN_LENGTH,      "Determines the number at which the chain command block acts as a \"chain\"");
         COMMENTS.put(GameRules.ANNOUNCE_ADVANCEMENTS,         "Whether advancements should be announced in chat");
         COMMENTS.put(GameRules.DISABLE_RAIDS,                 "Whether raids are disabled.");
+        COMMENTS.put(GameRules.DO_INSOMNIA,                   "Whether phantoms can spawn in the nighttime");
+        COMMENTS.put(GameRules.DO_IMMEDIATE_RESPAWN,          "Players respawn immediately without showing the death screen");
+        COMMENTS.put(GameRules.DROWNING_DAMAGE,               "Whether the player should take damage when drowning");
+        COMMENTS.put(GameRules.FALL_DAMAGE,                   "Whether the player should take fall damage\t");
+        COMMENTS.put(GameRules.FIRE_DAMAGE,                   "Whether the player should take fire damage\t");
+        COMMENTS.put(GameRules.field_230127_D_,               "Whether patrols can spawn.");
+        COMMENTS.put(GameRules.field_230128_E_,               "Whether wandering traders can spawn.");
+
 
         Pair<Common, ForgeConfigSpec> configSpecPair = new ForgeConfigSpec.Builder().configure(Common::new);
         commonSpec = configSpecPair.getRight();
@@ -73,11 +81,11 @@ public class GGRConfig {
 
             gameRules = new HashMap<>();
             Converter<String, String> converter = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE);
-            GameRules.func_223590_a(new GameRules.IRuleEntryVisitor() {
+            GameRules.visitAll(new GameRules.IRuleEntryVisitor() {
                 @Override
-                public <T extends GameRules.RuleValue<T>> void func_223481_a(GameRules.RuleKey<T> ruleKey, GameRules.RuleType<T> ruleType) {
-                    T t = ruleType.func_223579_a();
-                    String name = converter.convert(ruleKey.func_223576_a());
+                public <T extends GameRules.RuleValue<T>> void visit(GameRules.RuleKey<T> ruleKey, GameRules.RuleType<T> ruleType) {
+                    T t = ruleType.createValue();
+                    String name = converter.convert(ruleKey.getName());
                     if (name != null) {
                         if (t instanceof GameRules.BooleanValue) {
                             BooleanValue value = builder
