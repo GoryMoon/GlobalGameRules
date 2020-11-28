@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
-          echo "${{ secrets.RELEASE_KEYSTORE }}" > release.keystore.asc
-          gpg -d --quiet --passphrase "${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > release.keystore
+      - name: Setup keystore
+        env:
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+          RELEASE_KEYSTORE_PASSPHRASE: ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}
+        run: ./.github/prepare_keystore.sh
       - name: Set up JDK 1.11
         uses: actions/setup-java@v1
         with:
@@ -26,8 +28,8 @@ jobs:
       - name: Build with Gradle
         env:
           ORG_GRADLE_PROJECT_keyStore: ./release.keystore
-          ORG_GRADLE_PROJECT_keyStoreAlias: {{ secrets.KEYSTORE_ALIAS }}
-          ORG_GRADLE_PROJECT_keyStorePass: {{ secrets.KEYSTORE_PASS }}
+          ORG_GRADLE_PROJECT_keyStoreAlias: ${{ secrets.KEYSTORE_ALIAS }}
+          ORG_GRADLE_PROJECT_keyStorePass: ${{ secrets.KEYSTORE_PASS }}
         run: ./gradlew build
       - uses: actions/upload-artifact@v2
         with:
