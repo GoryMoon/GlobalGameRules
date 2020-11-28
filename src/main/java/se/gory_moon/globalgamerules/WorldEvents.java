@@ -9,7 +9,10 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
-import net.minecraft.world.storage.WorldInfo;
+import net.minecraft.world.WorldSettings;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.storage.IWorldInfo;
+import net.minecraft.world.storage.ServerWorldInfo;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -43,36 +46,45 @@ public class WorldEvents {
     @SubscribeEvent
     public static void onWorldLoad(WorldEvent.Load event) {
         if (event.getWorld().isRemote()) return;
-        IWorld world = event.getWorld();
-        WorldInfo info = world.getWorldInfo();
+        if (!(event.getWorld() instanceof ServerWorld)) return;
+        ServerWorld world = (ServerWorld) event.getWorld();
+
+        if (!(world.getWorldInfo() instanceof ServerWorldInfo)) return;
+
+        ServerWorldInfo info = (ServerWorldInfo) world.getWorldInfo();
         GameRules rules = info.getGameRulesInstance();
 
-        LOGGER.info("Applying config gamerules to dimension {} ({})", world.getDimension().getType().getId(), info.getWorldName());
+        LOGGER.info("Applying config gamerules to world {}", info.getWorldName());
         HashMap<String, ParsedArgument<CommandSource, ?>> arguments = new HashMap<>();
         GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getName(), new ParsedArgument<CommandSource, Object>(0, 0, configValue.get())));
-        CommandContext<CommandSource> context = new CommandContext<>(world.getWorld().getServer().getCommandSource(), null, arguments, null, null, null, null, null, null, false);
+        CommandContext<CommandSource> context = new CommandContext<>(world.getServer().getCommandSource(), null, arguments, null, null, null, null, null, null, false);
         GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.get(ruleKey).updateValue(context, ruleKey.getName()));
-
-        if (!info.isDifficultyLocked() && GGRConfig.COMMON.setDifficulty.get()) {
-            Difficulty diff = GGRConfig.COMMON.difficulty.get();
-            info.setDifficulty(diff);
-            LOGGER.info("Setting difficulty of dimension {} ({}) to {}", world.getDimension().getType().getId(), info.getWorldName(), diff.toString());
-        }
 
         if (!info.isDifficultyLocked()) {
             Boolean hardcore = GGRConfig.COMMON.hardcore.get();
-            info.setHardcore(hardcore);
-            if (hardcore && info.getDifficulty() != Difficulty.HARD) {
-                info.setDifficulty(Difficulty.HARD);
+            if (info.isHardcore() != hardcore) {
+                WorldSettings settings = info.worldSettings;
+                info.worldSettings = new WorldSettings(settings.getWorldName(), settings.getGameType(), hardcore, settings.getDifficulty(), settings.isCommandsAllowed(), settings.getGameRules(), settings.getDatapackCodec());
+                if (hardcore && info.getDifficulty() != Difficulty.HARD) {
+                    world.getServer().setDifficultyForAllWorlds(Difficulty.HARD, false);
+                }
+                if (hardcore) {
+                    LOGGER.info("Enabling hardcore in world {}", info.getWorldName());
+                } else {
+                    LOGGER.info("Disabling hardcore in world {}", info.getWorldName());
+                }
             }
-            if (hardcore) {
-                LOGGER.info("Setting dimension {} ({}) to hardcore", world.getDimension().getType().getId(), info.getWorldName());
+
+            if (GGRConfig.COMMON.setDifficulty.get()) {
+                Difficulty diff = GGRConfig.COMMON.difficulty.get();
+                world.getServer().setDifficultyForAllWorlds(diff, false);
+                LOGGER.info("Setting difficulty of world {} to {}", info.getWorldName(), diff.toString());
             }
         }
 
         if (GGRConfig.COMMON.lockDifficulty.get()) {
-            info.setDifficultyLocked(true);
-            LOGGER.info("Locking difficulty of dimension {} ({})", world.getDimension().getType().getId(), info.getWorldName());
+            world.getServer().setDifficultyLocked(true);
+            LOGGER.info("Locking difficulty of world {}", info.getWorldName());
         }
     }
 
@@ -80,7 +92,7 @@ public class WorldEvents {
     public static void onWorldUnLoad(WorldEvent.Unload event) {
         if (event.getWorld().isRemote()) return;
         IWorld world = event.getWorld();
-        WorldInfo info = world.getWorldInfo();
+        IWorldInfo info = world.getWorldInfo();
         GameRules rules = info.getGameRulesInstance();
 
         if (GGRConfig.COMMON.saveGameRules.get()) {

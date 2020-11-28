@@ -1,5 +1,6 @@
 modLoader="javafml"
-loaderVersion="[31,)"
+loaderVersion="[34,)"
+license="LGPLv3"
 issueTrackerURL="https://github.com/GoryMoon/GlobalGameRules/issues"
 
 [[mods]]
@@ -15,13 +16,13 @@ A mod that allows for global gamerules when a world is loaded
 [[dependencies.globalgamerules]]
     modId="forge"
     mandatory=true
-    versionRange="[31,)"
+    versionRange="[34,)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.globalgamerules]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.15.2]"
+    versionRange="[1.16.3,1.17)"
     ordering="NONE"
     side="BOTH"

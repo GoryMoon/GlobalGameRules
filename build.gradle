@@ -9,33 +9,27 @@ buildscript {
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
-// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
+apply from: "https://raw.githubusercontent.com/MinecraftModDevelopment/Gradle-Collection/master/minecraft/artifacts.gradle"
+
 version = mod_version
-group = "se.gory_moon" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+group = "se.gory_moon"
 archivesBaseName = "GlobalGameRules-$mc_version"
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
 
-if (System.getenv().BUILD_NUMBER != null) { //adds the build number to the end of the version string if on a build server
-    version += ".${System.getenv().BUILD_NUMBER}"
+if (System.getenv().GITHUB_RUN_NUMBER != null) { //adds the build number to the end of the version string if on a build server
+    version += ".${System.getenv().GITHUB_RUN_NUMBER}"
 }
 
+println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
 minecraft {
-    // The mappings can be changed at any time, and must be in the following format.
-    // snapshot_YYYYMMDD   Snapshot are built nightly.
-    // stable_#            Stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
     mappings channel: mcp_channel, version: mcp_mappings
-    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
-    
-    //accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
     runs {
         client {
             workingDirectory project.file('run')
@@ -51,9 +45,6 @@ minecraft {
                     source sourceSets.main
                 }
             }
-            // Intellij stuff
-            ideaModule "${project.name}.main"
-            environment 'MOD_CLASSES', "${project.file("out/production/resources").canonicalPath}${File.pathSeparatorChar}${project.file("out/production/classes").canonicalPath}"
         }
 
         server {
@@ -70,9 +61,6 @@ minecraft {
                     source sourceSets.main
                 }
             }
-            // Intellij stuff
-            ideaModule "${project.name}.main"
-            environment 'MOD_CLASSES', "${project.file("out/production/resources").canonicalPath}${File.pathSeparatorChar}${project.file("out/production/classes").canonicalPath}"
         }
 
         data {
@@ -84,48 +72,21 @@ minecraft {
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
 
-            args '--mod', 'forge,globalgamerules', '--all', '--output', file('src/generated/resources/')
+            args '--mod', 'globalgamerules', '--all', '--output', file('src/generated/resources/')
 
             mods {
                 globalgamerules {
                     source sourceSets.main
                 }
             }
-            // Intellij stuff
-            ideaModule "${project.name}.main"
-            environment 'MOD_CLASSES', "${project.file("out/production/resources").canonicalPath}${File.pathSeparatorChar}${project.file("out/production/classes").canonicalPath}"
         }
     }
 }
 
+sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
-    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
-    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
-    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
-}
-
-task devJar(type: Jar, dependsOn: 'classes') {
-    from(sourceSets.main.output) {
-        include '**'
-    }
-
-    extension = 'jar'
-    classifier = 'dev'
-}
-
-task sourceJar(type: Jar) {
-    from(sourceSets.main.allSource) {
-        include '**'
-    }
-    extension = 'jar'
-    classifier = 'sources'
-}
-
-artifacts {
-    archives devJar
-    archives sourceJar
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
@@ -143,89 +104,28 @@ jar {
     }
 }
 
-if (project.hasProperty("local_maven")) {
-    // Example configuration to allow publishing using the maven-publish task
-    // we define a custom artifact that is sourced from the reobfJar output task
-    // and then declare that to be published
-    // Note you'll need to add a repository here
-    def reobfFile = file("$buildDir/reobfJar/output.jar")
-    def reobfArtifact = artifacts.add('default', reobfFile) {
-        type 'jar'
-        builtBy 'reobfJar'
+// Jar Signing
+import net.minecraftforge.gradle.common.task.SignJar
+task signJar(type: SignJar, dependsOn: jar) {
+
+    onlyIf {
+        project.hasProperty('keyStore')
     }
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                version = "$mc_version-${project.getVersion()}"
-                artifact reobfArtifact
-                artifact devJar
-                artifact sourceJar
-            }
-        }
-        repositories {
-            maven {
-                url "file://${project.getProperty('local_maven')}"
-            }
-        }
+
+    if (project.hasProperty('keyStore')) {
+        project.logger.info('Signing jar ' + jar.archivePath.getName());
+
+        keyStore = project.findProperty('keyStore')
+        alias = project.findProperty('keyStoreAlias')
+        storePass = project.findProperty('keyStorePass')
+        keyPass = project.findProperty('keyStorePass')
+        inputFile = jar.archivePath
+        outputFile = jar.archivePath
+    }
+
+    else {
+        project.logger.warn('Could not sign ' + jar.archivePath.getName() + '. No keyStore property could be found')
     }
 }
-/*
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            if (project.hasProperty("maven_url")) {
-                logger.info('Publishing to files server')
-                configuration = configurations.deployerJars
 
-                repository(url: project.maven_url) {
-                    authentication(userName: project.maven_username ?: "", password: project.maven_password ?: "")
-                }
-            } else if (project.hasProperty("local_maven")) {
-                repository(url: "file://${project.getProperty('local_maven')}")
-            }
-
-            pom {
-                groupId = project.group
-                version = project.version
-                artifactId = project.archivesBaseName
-            }
-
-            pom.project {
-                name project.archivesBaseName
-                packaging 'jar'
-                description 'GlobalGameRules'
-                url 'https://github.com/GoryMoon/GlobalGameRules/'
-
-                scm {
-                    url 'https://github.com/GoryMoon/GlobalGameRules/'
-                    connection 'scm:git:git://github.com/GoryMoon/GlobalGameRules.git'
-                    developerConnection 'scm:git:git@github.com/GoryMoon/GlobalGameRules.git'
-                }
-
-                issueManagement {
-                    system 'github'
-                    url 'https://github.com/GoryMoon/GlobalGameRules/issues'
-                }
-
-                licenses {
-                    license {
-                        name 'GNU Lesser General Public License 3.0'
-                        url 'https://www.gnu.org/licenses/lgpl-3.0.txt'
-                        distribution 'repo'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id 'Gory_Moon'
-                        name 'Gory_Moon'
-                        roles {
-                            role 'developer'
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-*/
+build.dependsOn signJar

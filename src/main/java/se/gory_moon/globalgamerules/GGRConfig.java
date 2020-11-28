@@ -51,10 +51,12 @@ public class GGRConfig {
         COMMENTS.put(GameRules.DO_INSOMNIA,                   "Whether phantoms can spawn in the nighttime");
         COMMENTS.put(GameRules.DO_IMMEDIATE_RESPAWN,          "Players respawn immediately without showing the death screen");
         COMMENTS.put(GameRules.DROWNING_DAMAGE,               "Whether the player should take damage when drowning");
-        COMMENTS.put(GameRules.FALL_DAMAGE,                   "Whether the player should take fall damage\t");
-        COMMENTS.put(GameRules.FIRE_DAMAGE,                   "Whether the player should take fire damage\t");
-        COMMENTS.put(GameRules.field_230127_D_,               "Whether patrols can spawn.");
-        COMMENTS.put(GameRules.field_230128_E_,               "Whether wandering traders can spawn.");
+        COMMENTS.put(GameRules.FALL_DAMAGE,                   "Whether the player should take fall damage");
+        COMMENTS.put(GameRules.FIRE_DAMAGE,                   "Whether the player should take fire damage");
+        COMMENTS.put(GameRules.DO_PATROL_SPAWNING,            "Whether patrols can spawn.");
+        COMMENTS.put(GameRules.DO_TRADER_SPAWNING,            "Whether wandering traders can spawn.");
+        COMMENTS.put(GameRules.FORGIVE_DEAD_PLAYERS,          "Makes angered neutral mobs stop being angry when the targeted player dies nearby.");
+        COMMENTS.put(GameRules.UNIVERSAL_ANGER,               "Makes angered neutral mobs attack any nearby player, not just the player that angered them. Works best if forgiveDeadPlayers is disabled.");
 
 
         Pair<Common, ForgeConfigSpec> configSpecPair = new ForgeConfigSpec.Builder().configure(Common::new);
@@ -73,9 +75,6 @@ public class GGRConfig {
         public final Map<GameRules.RuleKey<?>, ConfigValue<?>> gameRules;
 
         Common(ForgeConfigSpec.Builder builder) {
-            builder.comment("Common configs")
-                    .push("common");
-
             builder.comment("Gamerules that are set when a world is loaded")
                     .push("gamerules");
 
@@ -134,7 +133,7 @@ public class GGRConfig {
                     .comment("A comma separated list of commands to run on world join, @p is replaced with joining player name, command is run by the server", "Example: default_commands = [\"/tellraw @p [\\\"\\\",{\\\"text\\\":\\\"Hi \\\"},{\\\"text\\\":\\\"@p\\\",\\\"color\\\":\\\"aqua\\\"}]\"]")
                     .defineList("default_commands", ArrayList::new, o -> !Strings.isNullOrEmpty(String.valueOf(o)) && String.valueOf(o).startsWith("/"));
 
-            builder.pop(2);
+            builder.pop();
         }
     }
 
