@@ -126,7 +126,7 @@ public class GGRConfig {
                     .push("misc");
 
             saveGameRules = builder
-                    .comment("If gamerules and world difficulty should be saved to config on world unload")
+                    .comment("If gamerules should be saved to config on world unload")
                     .define("save_gamerules", true);
 
             defaultCommands = builder

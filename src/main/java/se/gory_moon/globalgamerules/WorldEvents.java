@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WorldEvents {
 
@@ -95,20 +96,28 @@ public class WorldEvents {
         IWorldInfo info = world.getWorldInfo();
         GameRules rules = info.getGameRulesInstance();
 
+        AtomicBoolean dirty = new AtomicBoolean(false);
         if (GGRConfig.COMMON.saveGameRules.get()) {
             GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> {
                 GameRules.RuleValue<?> val = rules.get(ruleKey);
-                if (val instanceof GameRules.BooleanValue) {
+                if (val instanceof GameRules.BooleanValue && ((BooleanValue)configValue).get() != ((GameRules.BooleanValue) val).get()) {
                     ((BooleanValue)configValue).set(((GameRules.BooleanValue) val).get());
-                } else if (val instanceof GameRules.IntegerValue) {
+                    dirty.set(true);
+                } else if (val instanceof GameRules.IntegerValue && ((IntValue)configValue).get() != ((GameRules.IntegerValue) val).get()) {
                     ((IntValue)configValue).set(((GameRules.IntegerValue) val).get());
+                    dirty.set(true);
                 }
             });
+        }
 
-            if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
+        if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
+            if (GGRConfig.COMMON.difficulty.get() != info.getDifficulty()) {
                 GGRConfig.COMMON.difficulty.set(info.getDifficulty());
+                dirty.set(true);
             }
+        }
 
+        if (dirty.get()) {
             GGRConfig.commonSpec.save();
         }
     }
