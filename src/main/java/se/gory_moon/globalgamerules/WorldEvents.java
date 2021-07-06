@@ -104,12 +104,12 @@ public class WorldEvents {
                     ((IntValue)configValue).set(((GameRules.IntegerValue) val).get());
                 }
             });
-        }
 
-        if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
-            GGRConfig.COMMON.difficulty.set(info.getDifficulty());
-        }
+            if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
+                GGRConfig.COMMON.difficulty.set(info.getDifficulty());
+            }
 
-        GGRConfig.commonSpec.save();
+            GGRConfig.commonSpec.save();
+        }
     }
 }
