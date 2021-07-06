@@ -5,7 +5,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '4.1.+', changing: true
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
@@ -18,7 +18,7 @@ version = mod_version
 group = "se.gory_moon"
 archivesBaseName = "GlobalGameRules-$mc_version"
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+java.toolchain.languageVersion = JavaLanguageVersion.of(8) // Mojang ships Java 8 to end users, so your mod should target Java 8
 
 if (System.getenv().GITHUB_RUN_NUMBER != null) { //adds the build number to the end of the version string if on a build server
     version += ".${System.getenv().GITHUB_RUN_NUMBER}"
