@@ -15,10 +15,10 @@ jobs:
           RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
           RELEASE_KEYSTORE_PASSPHRASE: ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}
         run: ./.github/prepare_keystore.sh
-      - name: Set up JDK 1.11
+      - name: Set up JDK 1.17
         uses: actions/setup-java@v1
         with:
-          java-version: 1.11
+          java-version: 1.17
       - name: Cache Gradle packages
         uses: actions/cache@v2
         with:
@@ -46,30 +46,13 @@ jobs:
         with:
           name: artifacts
           path: ./libs
-      - name: generate-changelog-action
-        uses: ScottBrenner/generate-changelog-action@master
-        id: changelog
-        env:
-          REPO: ${{ github.repository }}
-        with:
-          package-dir: '.github/package.json'
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1.8.10
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            ${{ steps.changelog.outputs.changelog }}
+          artifacts: "./libs/*.jar"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: Release ${{ github.ref }}
+          generateReleaseNotes: true
           draft: false
           prerelease: false
-      - name: Upload Release Assets
-        id: upload-release-assets
-        uses: alexellis/upload-assets@0.2.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          asset_paths: '["./libs/*"]'
-          asset_content_type: application/zip
