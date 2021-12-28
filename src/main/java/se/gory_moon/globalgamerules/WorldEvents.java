@@ -2,17 +2,17 @@ package se.gory_moon.globalgamerules;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.ParsedArgument;
-import net.minecraft.command.CommandSource;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldSettings;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.IWorldInfo;
-import net.minecraft.world.storage.ServerWorldInfo;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.storage.LevelData;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -24,82 +24,101 @@ import org.apache.logging.log4j.Logger;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Handles events for when the world is loaded/unloaded and when a plyer joins the world
+ */
 public class WorldEvents {
 
-    public static final Logger LOGGER = LogManager.getLogger("GlobalGameRules");
+    private static final Logger LOGGER = LogManager.getLogger("GlobalGameRules");
 
+    /**
+     * Runs the default command on users when they join a world.
+     * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
+     *
+     * @see EntityJoinWorldEvent
+     * @param event The data for the {@link EntityJoinWorldEvent} event
+     */
     @SubscribeEvent
     public static void onWorldJoin(EntityJoinWorldEvent event) {
-        if (!event.getWorld().isRemote && event.getEntity() instanceof PlayerEntity) {
-            World world = event.getWorld();
+        if (!event.getWorld().isClientSide() && event.getEntity() instanceof Player player) {
+            Level world = event.getWorld();
             MinecraftServer server = world.getServer();
-            PlayerEntity player = (PlayerEntity) event.getEntity();
 
             if (server != null) {
                 GGRConfig.COMMON.defaultCommands.get().forEach((s) -> {
                     String command = s.replaceAll("@p", player.getGameProfile().getName());
-                    server.getCommandManager().handleCommand(server.getCommandSource(), command);
+                    server.getCommands().performCommand(server.createCommandSourceStack(), command);
                 });
             }
         }
     }
 
+    /**
+     * Applies all the gamerules and any configured difficultly configs from the config.
+     * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
+     *
+     * @see WorldEvent.Load
+     * @param event The data for the {@link WorldEvent.Load} event
+     */
     @SubscribeEvent
     public static void onWorldLoad(WorldEvent.Load event) {
-        if (event.getWorld().isRemote()) return;
-        if (!(event.getWorld() instanceof ServerWorld)) return;
-        ServerWorld world = (ServerWorld) event.getWorld();
+        if (event.getWorld().isClientSide()) return;
+        if (!(event.getWorld() instanceof ServerLevel world)) return;
+        if (!(world.getLevelData() instanceof PrimaryLevelData info)) return;
+        GameRules rules = info.getGameRules();
 
-        if (!(world.getWorldInfo() instanceof ServerWorldInfo)) return;
-
-        ServerWorldInfo info = (ServerWorldInfo) world.getWorldInfo();
-        GameRules rules = info.getGameRulesInstance();
-
-        LOGGER.info("Applying config gamerules to world {}", info.getWorldName());
-        HashMap<String, ParsedArgument<CommandSource, ?>> arguments = new HashMap<>();
-        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getName(), new ParsedArgument<CommandSource, Object>(0, 0, configValue.get())));
-        CommandContext<CommandSource> context = new CommandContext<>(world.getServer().getCommandSource(), null, arguments, null, null, null, null, null, null, false);
-        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.get(ruleKey).updateValue(context, ruleKey.getName()));
+        LOGGER.info("Applying config gamerules to level {}", info.getLevelName());
+        HashMap<String, ParsedArgument<CommandSourceStack, ?>> arguments = new HashMap<>();
+        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getId(), new ParsedArgument<CommandSourceStack, Object>(0, 0, configValue.get())));
+        CommandContext<CommandSourceStack> context = new CommandContext<>(world.getServer().createCommandSourceStack(), null, arguments, null, null, null, null, null, null, false);
+        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.getRule(ruleKey).setFromArgument(context, ruleKey.getId()));
 
         if (!info.isDifficultyLocked()) {
             Boolean hardcore = GGRConfig.COMMON.hardcore.get();
             if (info.isHardcore() != hardcore) {
-                WorldSettings settings = info.worldSettings;
-                info.worldSettings = new WorldSettings(settings.getWorldName(), settings.getGameType(), hardcore, settings.getDifficulty(), settings.isCommandsAllowed(), settings.getGameRules(), settings.getDatapackCodec());
+                LevelSettings settings = info.settings;
+                info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataPackConfig());
                 if (hardcore && info.getDifficulty() != Difficulty.HARD) {
-                    world.getServer().setDifficultyForAllWorlds(Difficulty.HARD, false);
+                    world.getServer().setDifficulty(Difficulty.HARD, false);
                 }
                 if (hardcore) {
-                    LOGGER.info("Enabling hardcore in world {}", info.getWorldName());
+                    LOGGER.info("Enabling hardcore in level {}", info.getLevelName());
                 } else {
-                    LOGGER.info("Disabling hardcore in world {}", info.getWorldName());
+                    LOGGER.info("Disabling hardcore in level {}", info.getLevelName());
                 }
             }
 
             if (GGRConfig.COMMON.setDifficulty.get()) {
                 Difficulty diff = GGRConfig.COMMON.difficulty.get();
-                world.getServer().setDifficultyForAllWorlds(diff, false);
-                LOGGER.info("Setting difficulty of world {} to {}", info.getWorldName(), diff.toString());
+                world.getServer().setDifficulty(diff, false);
+                LOGGER.info("Setting difficulty of level {} to {}", info.getLevelName(), diff.toString());
             }
         }
 
         if (GGRConfig.COMMON.lockDifficulty.get()) {
             world.getServer().setDifficultyLocked(true);
-            LOGGER.info("Locking difficulty of world {}", info.getWorldName());
+            LOGGER.info("Locking difficulty of level {}", info.getLevelName());
         }
     }
 
+    /**
+     * Saves all the gamerules and any changed difficultly settings to the config.
+     * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
+     *
+     * @see WorldEvent.Unload
+     * @param event The data for the {@link WorldEvent.Unload} event
+     */
     @SubscribeEvent
     public static void onWorldUnLoad(WorldEvent.Unload event) {
-        if (event.getWorld().isRemote()) return;
-        IWorld world = event.getWorld();
-        IWorldInfo info = world.getWorldInfo();
-        GameRules rules = info.getGameRulesInstance();
+        if (event.getWorld().isClientSide()) return;
+        LevelAccessor world = event.getWorld();
+        LevelData info = world.getLevelData();
+        GameRules rules = info.getGameRules();
 
         AtomicBoolean dirty = new AtomicBoolean(false);
         if (GGRConfig.COMMON.saveGameRules.get()) {
             GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> {
-                GameRules.RuleValue<?> val = rules.get(ruleKey);
+                GameRules.Value<?> val = rules.getRule(ruleKey);
                 if (val instanceof GameRules.BooleanValue && ((BooleanValue)configValue).get() != ((GameRules.BooleanValue) val).get()) {
                     ((BooleanValue)configValue).set(((GameRules.BooleanValue) val).get());
                     dirty.set(true);
@@ -110,7 +129,7 @@ public class WorldEvents {
             });
         }
 
-        if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getWorldInfo().isDifficultyLocked()) {
+        if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getLevelData().isDifficultyLocked()) {
             if (GGRConfig.COMMON.difficulty.get() != info.getDifficulty()) {
                 GGRConfig.COMMON.difficulty.set(info.getDifficulty());
                 dirty.set(true);

@@ -8,11 +8,20 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
+/**
+ * The main mod class used for config setup and event-listener registering
+ */
 @Mod(GlobalGR.MOD_ID)
 public class GlobalGR {
 
+    /**
+     * The mod id
+     */
     public static final String MOD_ID = "globalgamerules";
 
+    /**
+     * Registers the construction method for the config and registers the event-listener for the world events
+     */
     public GlobalGR() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::constructMod);
         MinecraftForge.EVENT_BUS.register(WorldEvents.class);
