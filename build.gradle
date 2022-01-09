@@ -1,13 +1,16 @@
 buildscript {
     repositories {
         maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = 'https://maven.parchmentmc.org' }
         mavenCentral()
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath group: 'org.parchmentmc', name: 'librarian', version: '1.+'
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
@@ -26,7 +29,7 @@ if (System.getenv().GITHUB_RUN_NUMBER != null) { //adds the build number to the 
 
 println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
 minecraft {
-    mappings channel: mcp_channel, version: mcp_mappings
+    mappings channel: mappings_channel, version: mappings_version
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -39,6 +42,10 @@ minecraft {
 
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
+
+            // Make mixins work on dependencies
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
             mods {
                 globalgamerules {
@@ -56,6 +63,10 @@ minecraft {
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
 
+            // Make mixins work on dependencies
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
             mods {
                 globalgamerules {
                     source sourceSets.main
@@ -71,6 +82,10 @@ minecraft {
 
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
+
+            // Make mixins work on dependencies
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
             args '--mod', 'globalgamerules', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
 
@@ -90,7 +105,11 @@ dependencies {
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
 }
 
-// Example for how to get properties into the manifest for reading by the runtime..
+javadoc {
+    // Supress annoying warnings when generating JavaDoc files.
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
 jar {
     manifest {
         attributes([
