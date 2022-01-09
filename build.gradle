@@ -110,25 +110,23 @@ jar.finalizedBy('reobfJar', 'signJar')
 // Jar Signing
 import net.minecraftforge.gradle.common.tasks.SignJar
 task signJar(type: SignJar, dependsOn: jar) {
-
+    dependsOn 'reobfJar'
     onlyIf {
         project.hasProperty('keyStore')
     }
 
     if (project.hasProperty('keyStore')) {
-        project.logger.info('Signing jar ' + jar.archivePath.getName());
+        project.logger.info("Signing jar ${jar.archiveFileName.get()}");
 
         keyStore = project.findProperty('keyStore')
         alias = project.findProperty('keyStoreAlias')
         storePass = project.findProperty('keyStorePass')
         keyPass = project.findProperty('keyStorePass')
-        inputFile = jar.archivePath
-        outputFile = jar.archivePath
-
-        build.dependsOn signJar
+        inputFile = jar.archiveFile.get()
+        outputFile = jar.archiveFile.get()
     }
 
     else {
-        project.logger.warn('Could not sign ' + jar.archivePath.getName() + '. No keyStore property could be found')
+        project.logger.log(LogLevel.WARN, "Could not sign ${jar.archiveFileName.get()}. No keyStore property could be found")
     }
 }
