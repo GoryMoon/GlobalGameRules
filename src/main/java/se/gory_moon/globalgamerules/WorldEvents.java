@@ -15,8 +15,8 @@ import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,13 +35,13 @@ public class WorldEvents {
      * Runs the default command on users when they join a world.
      * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
      *
-     * @see EntityJoinWorldEvent
-     * @param event The data for the {@link EntityJoinWorldEvent} event
+     * @see EntityJoinLevelEvent
+     * @param event The data for the {@link EntityJoinLevelEvent} event
      */
     @SubscribeEvent
-    public static void onWorldJoin(EntityJoinWorldEvent event) {
-        if (!event.getWorld().isClientSide() && event.getEntity() instanceof Player player) {
-            Level world = event.getWorld();
+    public static void onWorldJoin(EntityJoinLevelEvent event) {
+        if (!event.getLevel().isClientSide() && event.getEntity() instanceof Player player) {
+            Level world = event.getLevel();
             MinecraftServer server = world.getServer();
 
             if (server != null) {
@@ -57,13 +57,13 @@ public class WorldEvents {
      * Applies all the gamerules and any configured difficultly configs from the config.
      * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
      *
-     * @see WorldEvent.Load
-     * @param event The data for the {@link WorldEvent.Load} event
+     * @see LevelEvent.Load
+     * @param event The data for the {@link LevelEvent.Load} event
      */
     @SubscribeEvent
-    public static void onWorldLoad(WorldEvent.Load event) {
-        if (event.getWorld().isClientSide()) return;
-        if (!(event.getWorld() instanceof ServerLevel world)) return;
+    public static void onWorldLoad(LevelEvent.Load event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getLevel() instanceof ServerLevel world)) return;
         if (!(world.getLevelData() instanceof PrimaryLevelData info)) return;
         GameRules rules = info.getGameRules();
 
@@ -105,13 +105,13 @@ public class WorldEvents {
      * Saves all the gamerules and any changed difficultly settings to the config.
      * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
      *
-     * @see WorldEvent.Unload
-     * @param event The data for the {@link WorldEvent.Unload} event
+     * @see LevelEvent.Unload
+     * @param event The data for the {@link LevelEvent.Unload} event
      */
     @SubscribeEvent
-    public static void onWorldUnLoad(WorldEvent.Unload event) {
-        if (event.getWorld().isClientSide()) return;
-        LevelAccessor world = event.getWorld();
+    public static void onWorldUnLoad(LevelEvent.Unload event) {
+        if (event.getLevel().isClientSide()) return;
+        LevelAccessor world = event.getLevel();
         LevelData info = world.getLevelData();
         GameRules rules = info.getGameRules();
 
@@ -129,7 +129,7 @@ public class WorldEvents {
             });
         }
 
-        if (GGRConfig.COMMON.setDifficulty.get() && !event.getWorld().getLevelData().isDifficultyLocked()) {
+        if (GGRConfig.COMMON.setDifficulty.get() && !event.getLevel().getLevelData().isDifficultyLocked()) {
             if (GGRConfig.COMMON.difficulty.get() != info.getDifficulty()) {
                 GGRConfig.COMMON.difficulty.set(info.getDifficulty());
                 dirty.set(true);

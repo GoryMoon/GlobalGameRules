@@ -1,18 +1,9 @@
-buildscript {
-    repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        maven { url = 'https://maven.parchmentmc.org' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-        classpath group: 'org.parchmentmc', name: 'librarian', version: '1.+'
-    }
+plugins {
+    id 'eclipse'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '5.1.+'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
 }
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.parchmentmc.librarian.forgegradle'
-apply plugin: 'eclipse'
-apply plugin: 'maven-publish'
 
 apply from: "https://raw.githubusercontent.com/MinecraftModDevelopment/Gradle-Collection/master/minecraft/artifacts.gradle"
 
@@ -27,7 +18,7 @@ if (System.getenv().GITHUB_RUN_NUMBER != null) { //adds the build number to the 
     version += ".${System.getenv().GITHUB_RUN_NUMBER}"
 }
 
-println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
     mappings channel: mappings_channel, version: mappings_version
 
@@ -46,6 +37,8 @@ minecraft {
             // Make mixins work on dependencies
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
+            property 'forge.enabledGameTestNamespaces', 'globalgamerules'
 
             mods {
                 globalgamerules {
@@ -66,6 +59,30 @@ minecraft {
             // Make mixins work on dependencies
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
+            property 'forge.enabledGameTestNamespaces', 'globalgamerules'
+
+            mods {
+                globalgamerules {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        gameTestServer {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            properties 'forge.logging.markers': 'REGISTRIES'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            // Make mixins work on dependencies
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
+            property 'forge.enabledGameTestNamespaces', 'globalgamerules'
 
             mods {
                 globalgamerules {
@@ -148,4 +165,8 @@ task signJar(type: SignJar, dependsOn: jar) {
     else {
         project.logger.log(LogLevel.WARN, "Could not sign ${jar.archiveFileName.get()}. No keyStore property could be found")
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
