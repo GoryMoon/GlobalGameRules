@@ -66,10 +66,10 @@ public class GGRConfig {
         COMMENTS.put(GameRules.RULE_FREEZE_DAMAGE,                  "Whether the player should take damage when inside powder snow");
         COMMENTS.put(GameRules.RULE_DO_PATROL_SPAWNING,             "Whether patrols can spawn");
         COMMENTS.put(GameRules.RULE_DO_TRADER_SPAWNING,             "Whether wandering traders can spawn");
+        COMMENTS.put(GameRules.RULE_DO_WARDEN_SPAWNING,             "Whether wardens can spawn");
         COMMENTS.put(GameRules.RULE_FORGIVE_DEAD_PLAYERS,           "Makes angered neutral mobs stop being angry when the targeted player dies nearby");
         COMMENTS.put(GameRules.RULE_UNIVERSAL_ANGER,                "Makes angered neutral mobs attack any nearby player, not just the player that angered them. Works best if forgiveDeadPlayers is disabled");
         COMMENTS.put(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE,    "What percentage of players must sleep to skip the night");
-
 
         Pair<Common, ForgeConfigSpec> configSpecPair = new ForgeConfigSpec.Builder().configure(Common::new);
         commonSpec = configSpecPair.getRight();
