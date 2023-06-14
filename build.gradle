@@ -14,8 +14,6 @@ apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-apply from: "https://raw.githubusercontent.com/MinecraftModDevelopment/Gradle-Collection/master/minecraft/artifacts.gradle"
-
 version = mod_version
 group = "se.gory_moon"
 archivesBaseName = "GlobalGameRules-$mc_version"
@@ -105,9 +103,30 @@ dependencies {
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
 }
 
-javadoc {
-    // Supress annoying warnings when generating JavaDoc files.
-    options.addStringOption('Xdoclint:none', '-quiet')
+tasks.register('sourcesJar', Jar) {
+    dependsOn classes
+    description = 'Creates a JAR containing the source code.'
+    from sourceSets.main.allSource
+    archiveClassifier.set('sources')
+}
+
+tasks.register('deobfJar', Jar) {
+    description = 'Creates a JAR containing the non-obfuscated compiled code.'
+    from sourceSets.main.output
+    archiveClassifier.set('deobf')
+}
+
+tasks.register('forgelibJar', Jar) {
+    description = 'Creates a compiled JAR which also contains raw sources.'
+    from sourceSets.main.output
+    from sourceSets.main.allJava
+    archiveClassifier.set('forgelib')
+}
+
+artifacts {
+    archives sourcesJar
+    archives deobfJar
+    archives forgelibJar
 }
 
 jar {
@@ -128,14 +147,15 @@ jar.finalizedBy('reobfJar', 'signJar')
 
 // Jar Signing
 import net.minecraftforge.gradle.common.tasks.SignJar
-task signJar(type: SignJar, dependsOn: jar) {
+
+tasks.register('signJar', SignJar) {
     dependsOn 'reobfJar'
     onlyIf {
         project.hasProperty('keyStore')
     }
 
     if (project.hasProperty('keyStore')) {
-        project.logger.info("Signing jar ${jar.archiveFileName.get()}");
+        project.logger.info("Signing jar ${jar.archiveFileName.get()}")
 
         keyStore = project.findProperty('keyStore')
         alias = project.findProperty('keyStoreAlias')
@@ -143,9 +163,7 @@ task signJar(type: SignJar, dependsOn: jar) {
         keyPass = project.findProperty('keyStorePass')
         inputFile = jar.archiveFile.get()
         outputFile = jar.archiveFile.get()
-    }
-
-    else {
+    } else {
         project.logger.log(LogLevel.WARN, "Could not sign ${jar.archiveFileName.get()}. No keyStore property could be found")
     }
 }
