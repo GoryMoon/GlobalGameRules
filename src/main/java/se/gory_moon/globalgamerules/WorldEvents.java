@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Handles events for when the world is loaded/unloaded and when a plyer joins the world
+ * Handles events for when the world is loaded/unloaded and when a player joins the world
  */
 public class WorldEvents {
 
@@ -45,9 +45,9 @@ public class WorldEvents {
             MinecraftServer server = world.getServer();
 
             if (server != null) {
-                GGRConfig.COMMON.defaultCommands.get().forEach((s) -> {
+                Config.COMMON.defaultCommands.get().forEach((s) -> {
                     String command = s.replaceAll("@p", player.getGameProfile().getName());
-                    server.getCommands().performCommand(server.createCommandSourceStack(), command);
+                    server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), command);
                 });
             }
         }
@@ -69,12 +69,12 @@ public class WorldEvents {
 
         LOGGER.info("Applying config gamerules to level {}", info.getLevelName());
         HashMap<String, ParsedArgument<CommandSourceStack, ?>> arguments = new HashMap<>();
-        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getId(), new ParsedArgument<CommandSourceStack, Object>(0, 0, configValue.get())));
+        Config.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getId(), new ParsedArgument<CommandSourceStack, Object>(0, 0, configValue.get())));
         CommandContext<CommandSourceStack> context = new CommandContext<>(world.getServer().createCommandSourceStack(), null, arguments, null, null, null, null, null, null, false);
-        GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.getRule(ruleKey).setFromArgument(context, ruleKey.getId()));
+        Config.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.getRule(ruleKey).setFromArgument(context, ruleKey.getId()));
 
         if (!info.isDifficultyLocked()) {
-            Boolean hardcore = GGRConfig.COMMON.hardcore.get();
+            Boolean hardcore = Config.COMMON.hardcore.get();
             if (info.isHardcore() != hardcore) {
                 LevelSettings settings = info.settings;
                 info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataPackConfig());
@@ -88,14 +88,14 @@ public class WorldEvents {
                 }
             }
 
-            if (GGRConfig.COMMON.setDifficulty.get()) {
-                Difficulty diff = GGRConfig.COMMON.difficulty.get();
+            if (Config.COMMON.setDifficulty.get()) {
+                Difficulty diff = Config.COMMON.difficulty.get();
                 world.getServer().setDifficulty(diff, false);
                 LOGGER.info("Setting difficulty of level {} to {}", info.getLevelName(), diff.toString());
             }
         }
 
-        if (GGRConfig.COMMON.lockDifficulty.get()) {
+        if (Config.COMMON.lockDifficulty.get()) {
             world.getServer().setDifficultyLocked(true);
             LOGGER.info("Locking difficulty of level {}", info.getLevelName());
         }
@@ -116,8 +116,8 @@ public class WorldEvents {
         GameRules rules = info.getGameRules();
 
         AtomicBoolean dirty = new AtomicBoolean(false);
-        if (GGRConfig.COMMON.saveGameRules.get()) {
-            GGRConfig.COMMON.gameRules.forEach((ruleKey, configValue) -> {
+        if (Config.COMMON.saveGameRules.get()) {
+            Config.COMMON.gameRules.forEach((ruleKey, configValue) -> {
                 GameRules.Value<?> val = rules.getRule(ruleKey);
                 if (val instanceof GameRules.BooleanValue && ((BooleanValue)configValue).get() != ((GameRules.BooleanValue) val).get()) {
                     ((BooleanValue)configValue).set(((GameRules.BooleanValue) val).get());
@@ -129,15 +129,15 @@ public class WorldEvents {
             });
         }
 
-        if (GGRConfig.COMMON.setDifficulty.get() && !event.getLevel().getLevelData().isDifficultyLocked()) {
-            if (GGRConfig.COMMON.difficulty.get() != info.getDifficulty()) {
-                GGRConfig.COMMON.difficulty.set(info.getDifficulty());
+        if (Config.COMMON.setDifficulty.get() && !event.getLevel().getLevelData().isDifficultyLocked()) {
+            if (Config.COMMON.difficulty.get() != info.getDifficulty()) {
+                Config.COMMON.difficulty.set(info.getDifficulty());
                 dirty.set(true);
             }
         }
 
         if (dirty.get()) {
-            GGRConfig.commonSpec.save();
+            Config.commonSpec.save();
         }
     }
 }
