@@ -70,6 +70,13 @@ public class Config {
         COMMENTS.put(GameRules.RULE_FORGIVE_DEAD_PLAYERS,           "Makes angered neutral mobs stop being angry when the targeted player dies nearby.");
         COMMENTS.put(GameRules.RULE_UNIVERSAL_ANGER,                "Makes angered neutral mobs attack any nearby player, not just the player that angered them. Works best if forgiveDeadPlayers is disabled.");
         COMMENTS.put(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE,    "What percentage of players must sleep to skip the night.");
+        COMMENTS.put(GameRules.RULE_BLOCK_EXPLOSION_DROP_DECAY,     "Whether block loot is dropped by all blocks (false) or randomly (true) depending on how far the block is from the center of a block explosion (e.g. clicking a bed in dimensions other than the Overworld).");
+        COMMENTS.put(GameRules.RULE_MOB_EXPLOSION_DROP_DECAY,       "Whether block loot is dropped by all blocks (false) or randomly (true) depending on how far the block is from the center of a mob explosion (e.g. Creeper explosion).");
+        COMMENTS.put(GameRules.RULE_TNT_EXPLOSION_DROP_DECAY,       "Whether block loot is dropped by all blocks (false) or randomly (true) depending on how far the block is from the center of a TNT explosion.");
+        COMMENTS.put(GameRules.RULE_SNOW_ACCUMULATION_HEIGHT,       "The maximum number of snow layers that can be accumulated on each block.");
+        COMMENTS.put(GameRules.RULE_WATER_SOURCE_CONVERSION,        "Whether new sources of water are allowed to form.");
+        COMMENTS.put(GameRules.RULE_LAVA_SOURCE_CONVERSION,         "Whether new sources of lava are allowed to form.");
+        COMMENTS.put(GameRules.RULE_GLOBAL_SOUND_EVENTS,            "Whether certain sound events are heard by all players regardless of location.");
 
         Pair<Common, ForgeConfigSpec> configSpecPair = new ForgeConfigSpec.Builder().configure(Common::new);
         commonSpec = configSpecPair.getRight();

@@ -77,7 +77,7 @@ public class WorldEvents {
             Boolean hardcore = Config.COMMON.hardcore.get();
             if (info.isHardcore() != hardcore) {
                 LevelSettings settings = info.settings;
-                info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataPackConfig());
+                info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataConfiguration());
                 if (hardcore && info.getDifficulty() != Difficulty.HARD) {
                     world.getServer().setDifficulty(Difficulty.HARD, false);
                 }
