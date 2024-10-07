@@ -28,6 +28,7 @@ public class Config extends Configuration {
         rules.put("keepInventory", false);
         rules.put("mobGriefing", true);
         rules.put("naturalRegeneration", true);
+        rules.put("tfEnforcedProgression", true);
 
         comments.put("commandBlockOutput", "Whether command blocks should notify admins when they perform commands");
         comments.put("doDaylightCycle", "Whether time progresses");
@@ -37,6 +38,7 @@ public class Config extends Configuration {
         comments.put("keepInventory", "Whether the player should keep items in their inventory after death");
         comments.put("mobGriefing", "Whether creepers, zombies, endermen, ghasts, withers, rabbits, sheep, and villagers should be able to change blocks and whether villagers, zombies, skeletons, and zombie pigmen can pick up items");
         comments.put("naturalRegeneration", "Whether the player can regenerate health naturally if their hunger is full enough (doesn't affect external healing, such as golden apples, the Regeneration effect, etc.)");
+        comments.put("tfEnforcedProgression", "Whether the Twilight Forest mod's progression system is enabled or not");
 
         addCustomCategoryComment(CATEGORY_GAMERULES, "Set the values to 'true' or 'false' depending if you want to have the GameRule enabled or disabled");
         defaults = (HashMap<String, Boolean>) rules.clone();
