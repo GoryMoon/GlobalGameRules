@@ -156,7 +156,7 @@ public class Config {
                                     .define(name, booleanValue.get()));
                         } else {
                             gameRules.put(ruleKey, ruleBuilder
-                                    .defineInRange(name, ((GameRules.IntegerValue) t).get(), 0, Integer.MAX_VALUE));
+                                    .defineInRange(name, ((GameRules.IntegerValue) t).get(), Integer.MIN_VALUE, Integer.MAX_VALUE));
                         }
 
                         // Pop the category
