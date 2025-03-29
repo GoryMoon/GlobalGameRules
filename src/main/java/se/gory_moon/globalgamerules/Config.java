@@ -101,6 +101,11 @@ public class Config {
         public final EnumValue<Difficulty> difficulty;
 
         /**
+         * If we should enforce the hardcore setting
+         */
+        public final BooleanValue enforceHardcore;
+
+        /**
          * If the world should be set to hardcore on load
          */
         public final BooleanValue hardcore;
@@ -171,6 +176,10 @@ public class Config {
             difficulty = builder
                     .comment("The difficulty to set if 'set_difficulty' is true, respects if the difficulty is locked or not for the world")
                     .defineEnum("difficulty", Difficulty.NORMAL);
+
+            enforceHardcore = builder
+                    .comment("If true the 'hardcore' setting is enforced", "If false the 'hardcore' setting isn't checked against the setting of a world")
+                    .define("enforce_hardcore", true);
 
             hardcore = builder
                     .comment("If true the world will be set to hardcore, difficultly will be set to hard independent to the 'difficulty' config", "Setting it to hardcore auto locks the difficulty while this is true")

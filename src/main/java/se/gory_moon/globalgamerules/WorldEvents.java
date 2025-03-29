@@ -74,8 +74,12 @@ public class WorldEvents {
         Config.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.getRule(ruleKey).setFromArgument(context, ruleKey.getId()));
 
         if (!info.isDifficultyLocked()) {
-            Boolean hardcore = Config.COMMON.hardcore.get();
-            if (info.isHardcore() != hardcore) {
+
+            var hardcore = Config.COMMON.hardcore.get();
+            var enforceHardcore = Config.COMMON.enforceHardcore.get();
+
+            // Only change the hardcore setting if we are enforcing it
+            if (enforceHardcore && info.isHardcore() != hardcore) {
                 LevelSettings settings = info.settings;
                 info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataConfiguration());
                 if (hardcore && info.getDifficulty() != Difficulty.HARD) {
