@@ -126,6 +126,11 @@ public class Config {
         public final BooleanValue saveGameRules;
 
         /**
+         * If gamerules and settings only should be used as the defaults when creating a world
+         */
+        public final BooleanValue useAsDefaultsOnly;
+
+        /**
          * A map of gamerules and their config values
          */
         public final Map<GameRules.Key<?>, ConfigValue<?>> gameRules;
@@ -196,6 +201,10 @@ public class Config {
             saveGameRules = builder
                     .comment("If gamerules should be saved to config on world unload")
                     .define("save_gamerules", true);
+
+            useAsDefaultsOnly = builder
+                    .comment("If gamerules and settings only should be used as the defaults when creating a world", "This will also block saving of changes to the config")
+                    .define("use_as_defaults_only", false);
 
             defaultCommands = builder
                     .comment("A comma separated list of commands to run on world join, @p is replaced with joining player name, command is run by the server", "Example: default_commands = [\"/tellraw @p [\\\"\\\",{\\\"text\\\":\\\"Hi \\\"},{\\\"text\\\":\\\"@p\\\",\\\"color\\\":\\\"aqua\\\"}]\"]")
