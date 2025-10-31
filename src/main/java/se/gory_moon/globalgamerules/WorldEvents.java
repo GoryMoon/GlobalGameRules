@@ -9,9 +9,7 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
@@ -35,8 +33,8 @@ public class WorldEvents {
      * Runs the default command on users when they join a world.
      * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
      *
-     * @see EntityJoinLevelEvent
      * @param event The data for the {@link EntityJoinLevelEvent} event
+     * @see EntityJoinLevelEvent
      */
     @SubscribeEvent
     public static void onWorldJoin(EntityJoinLevelEvent event) {
@@ -57,20 +55,27 @@ public class WorldEvents {
      * Applies all the gamerules and any configured difficultly configs from the config.
      * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
      *
-     * @see LevelEvent.Load
      * @param event The data for the {@link LevelEvent.Load} event
+     * @see LevelEvent.Load
      */
     @SubscribeEvent
     public static void onWorldLoad(LevelEvent.Load event) {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getLevel() instanceof ServerLevel world)) return;
+
+        // Only apply on the primary level data as all dimensions share settings
         if (!(world.getLevelData() instanceof PrimaryLevelData info)) return;
+
+        // Check if the settings only should be used as a default when creating a new world
+        if (Config.COMMON.useAsDefaultsOnly.get() && info.isInitialized()) return;
+
         GameRules rules = info.getGameRules();
+        MinecraftServer server = world.getServer();
 
         LOGGER.info("Applying config gamerules to level {}", info.getLevelName());
         HashMap<String, ParsedArgument<CommandSourceStack, ?>> arguments = new HashMap<>();
         Config.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getId(), new ParsedArgument<CommandSourceStack, Object>(0, 0, configValue.get())));
-        CommandContext<CommandSourceStack> context = new CommandContext<>(world.getServer().createCommandSourceStack(), null, arguments, null, null, null, null, null, null, false);
+        CommandContext<CommandSourceStack> context = new CommandContext<>(server.createCommandSourceStack(), null, arguments, null, null, null, null, null, null, false);
         Config.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.getRule(ruleKey).setFromArgument(context, ruleKey.getId()));
 
         if (!info.isDifficultyLocked()) {
@@ -83,7 +88,7 @@ public class WorldEvents {
                 LevelSettings settings = info.settings;
                 info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataConfiguration());
                 if (hardcore && info.getDifficulty() != Difficulty.HARD) {
-                    world.getServer().setDifficulty(Difficulty.HARD, false);
+                    server.setDifficulty(Difficulty.HARD, false);
                 }
                 if (hardcore) {
                     LOGGER.info("Enabling hardcore in level {}", info.getLevelName());
@@ -94,13 +99,13 @@ public class WorldEvents {
 
             if (Config.COMMON.setDifficulty.get()) {
                 Difficulty diff = Config.COMMON.difficulty.get();
-                world.getServer().setDifficulty(diff, false);
+                server.setDifficulty(diff, false);
                 LOGGER.info("Setting difficulty of level {} to {}", info.getLevelName(), diff.toString());
             }
         }
 
         if (Config.COMMON.lockDifficulty.get()) {
-            world.getServer().setDifficultyLocked(true);
+            server.setDifficultyLocked(true);
             LOGGER.info("Locking difficulty of level {}", info.getLevelName());
         }
     }
@@ -109,31 +114,43 @@ public class WorldEvents {
      * Saves all the gamerules and any changed difficultly settings to the config.
      * This should not be called, it's automatically called by the {@link SubscribeEvent} annotation
      *
-     * @see LevelEvent.Unload
      * @param event The data for the {@link LevelEvent.Unload} event
+     * @see LevelEvent.Unload
      */
     @SubscribeEvent
     public static void onWorldUnLoad(LevelEvent.Unload event) {
         if (event.getLevel().isClientSide()) return;
-        LevelAccessor world = event.getLevel();
-        LevelData info = world.getLevelData();
+        if (!(event.getLevel() instanceof ServerLevel world)) return;
+
+        // Only apply on the primary level data as all dimensions share settings
+        if (!(world.getLevelData() instanceof PrimaryLevelData info)) return;
+
+        // Check if the settings only should be used as a default we never save changes
+        if (Config.COMMON.useAsDefaultsOnly.get()) return;
+
         GameRules rules = info.getGameRules();
 
         AtomicBoolean dirty = new AtomicBoolean(false);
         if (Config.COMMON.saveGameRules.get()) {
             Config.COMMON.gameRules.forEach((ruleKey, configValue) -> {
                 GameRules.Value<?> val = rules.getRule(ruleKey);
-                if (val instanceof GameRules.BooleanValue && ((BooleanValue)configValue).get() != ((GameRules.BooleanValue) val).get()) {
-                    ((BooleanValue)configValue).set(((GameRules.BooleanValue) val).get());
-                    dirty.set(true);
-                } else if (val instanceof GameRules.IntegerValue && ((IntValue)configValue).get() != ((GameRules.IntegerValue) val).get()) {
-                    ((IntValue)configValue).set(((GameRules.IntegerValue) val).get());
-                    dirty.set(true);
+                if (val instanceof GameRules.BooleanValue booleanValue) {
+                    var config = (BooleanValue) configValue;
+                    if (config.get() != booleanValue.get()) {
+                        config.set(booleanValue.get());
+                        dirty.set(true);
+                    }
+                } else if (val instanceof GameRules.IntegerValue intValue) {
+                    var config = (IntValue) configValue;
+                    if (config.get() != intValue.get()) {
+                        config.set(intValue.get());
+                        dirty.set(true);
+                    }
                 }
             });
         }
 
-        if (Config.COMMON.setDifficulty.get() && !event.getLevel().getLevelData().isDifficultyLocked()) {
+        if (Config.COMMON.setDifficulty.get() && !info.isDifficultyLocked()) {
             if (Config.COMMON.difficulty.get() != info.getDifficulty()) {
                 Config.COMMON.difficulty.set(info.getDifficulty());
                 dirty.set(true);
