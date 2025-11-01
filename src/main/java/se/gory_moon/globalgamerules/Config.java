@@ -12,10 +12,8 @@ import net.minecraftforge.common.ForgeConfigSpec.EnumValue;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Class to hold and manage config options
@@ -32,6 +30,7 @@ public class Config {
      */
     public static final ForgeConfigSpec commonSpec;
     private static final HashMap<GameRules.Key<?>, String> COMMENTS = new HashMap<>();
+    private static final Converter<String, String> RULE_CONVERTER = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE);
 
     static {
         COMMENTS.put(GameRules.RULE_DOFIRETICK,                         "Whether fire should spread and naturally extinguish");
@@ -131,6 +130,12 @@ public class Config {
         public final BooleanValue useAsDefaultsOnly;
 
         /**
+         * A config value holding a dynamic config of modded gamerules
+         * This is filled when all mods are loaded
+         */
+        public final ConfigValue<com.electronwill.nightconfig.core.Config> modGameRules;
+
+        /**
          * A map of gamerules and their config values
          */
         public final Map<GameRules.Key<?>, ConfigValue<?>> gameRules;
@@ -140,27 +145,29 @@ public class Config {
                     .push("gamerules");
 
             gameRules = new HashMap<>();
-            Converter<String, String> ruleConverter = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE);
             GameRules.visitGameRuleTypes(new GameRules.GameRuleTypeVisitor() {
                 @Override
-                public <T extends GameRules.Value<T>> void visit(GameRules.@NotNull Key<T> ruleKey, GameRules.@NotNull Type<T> ruleType) {
-                    T t = ruleType.createRule();
-                    String name = ruleConverter.convert(ruleKey.getId());
+                public <T extends GameRules.Value<T>> void visit(GameRules.@NotNull Key<T> key, GameRules.@NotNull Type<T> type) {
+                    T t = type.createRule();
+                    String name = RULE_CONVERTER.convert(key.getId());
 
                     // Only allow boolean and int types
                     if (name != null && (t instanceof GameRules.BooleanValue || t instanceof GameRules.IntegerValue)) {
+                        // Get the comment, ignore if it's a non vanilla one, we handle those separately
+                        var comment = COMMENTS.get(key);
+                        if (comment == null) return;
+
                         // Push the category
-                        String category = ruleKey.getCategory().toString().toLowerCase();
+                        String category = key.getCategory().toString().toLowerCase();
                         builder.push(category);
 
-                        // Create comment, add note if it's not a vanilla rule
-                        var ruleBuilder = builder.comment(COMMENTS.getOrDefault(ruleKey, "Non Vanilla gamerule: '%s'".formatted(ruleKey.getId())));
+                        var ruleBuilder = builder.comment(comment);
 
                         if (t instanceof GameRules.BooleanValue booleanValue) {
-                            gameRules.put(ruleKey, ruleBuilder
+                            gameRules.put(key, ruleBuilder
                                     .define(name, booleanValue.get()));
                         } else {
-                            gameRules.put(ruleKey, ruleBuilder
+                            gameRules.put(key, ruleBuilder
                                     .defineInRange(name, ((GameRules.IntegerValue) t).get(), Integer.MIN_VALUE, Integer.MAX_VALUE));
                         }
 
@@ -170,8 +177,12 @@ public class Config {
                 }
             });
 
+            modGameRules = builder
+                    .comment("Modded gamerules", "The modded gamerules should be populated after loading the game, only integer and boolean values are valid")
+                    .define("modded", this::getDefaultModdedGamerules, this::validateModdedGamerules);
+
             builder.pop()
-                    .comment("Configs related to difficult changes")
+                    .comment("Configs related to difficulty changes")
                     .push("difficulty");
 
             setDifficulty = builder
@@ -212,6 +223,63 @@ public class Config {
 
             builder.pop();
         }
-    }
 
+        private com.electronwill.nightconfig.core.Config getDefaultModdedGamerules() {
+            return com.electronwill.nightconfig.core.Config.inMemory();
+        }
+
+        private boolean validateModdedGamerules(Object obj) {
+            if (obj instanceof com.electronwill.nightconfig.core.Config config) {
+                return config.isEmpty()
+                        || config.valueMap().values().stream().allMatch(o ->
+                        o instanceof Integer
+                                || o instanceof Boolean
+                                || (o instanceof com.electronwill.nightconfig.core.Config cfg && validateModdedGamerules(cfg)));
+            }
+            return false;
+        }
+
+        public boolean updateModdedGamerules(GameRules rules) {
+            var cfg = modGameRules.get();
+            var hasRules = rules != null;
+
+            AtomicBoolean dirty = new AtomicBoolean(false);
+            GameRules.visitGameRuleTypes(new GameRules.GameRuleTypeVisitor() {
+                @Override
+                public <T extends GameRules.Value<T>> void visit(@NotNull GameRules.Key<T> key, @NotNull GameRules.Type<T> type) {
+                    // Ignore vanilla gamerules
+                    if (COMMENTS.containsKey(key)) return;
+
+                    String category = key.getCategory().toString().toLowerCase();
+                    String name = category + "." + key.getId();
+
+                    var old = cfg.get(name);
+                    if (old != null && !hasRules) return;
+
+                    GameRules.Value<T> t;
+                    if (rules != null)
+                        t = rules.getRule(key);
+                    else
+                         t = type.createRule();
+
+                    if (t instanceof GameRules.BooleanValue bVal &&
+                            (old == null || (old instanceof Boolean oldBool && bVal.get() != oldBool))) {
+
+                        cfg.set(name, bVal.get());
+                        dirty.set(true);
+                    } else if (t instanceof GameRules.IntegerValue iVal &&
+                            (old == null || (old instanceof Integer oldInt && iVal.get() != oldInt))) {
+
+                        cfg.set(name, iVal.get());
+                        dirty.set(true);
+                    }
+                }
+            });
+
+            if (dirty.get() && !hasRules)
+                Config.commonSpec.save();
+
+            return dirty.get();
+        }
+    }
 }
