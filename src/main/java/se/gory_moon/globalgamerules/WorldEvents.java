@@ -1,8 +1,5 @@
 package se.gory_moon.globalgamerules;
 
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.context.ParsedArgument;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
@@ -18,8 +15,8 @@ import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -73,10 +70,40 @@ public class WorldEvents {
         MinecraftServer server = world.getServer();
 
         LOGGER.info("Applying config gamerules to level {}", info.getLevelName());
-        HashMap<String, ParsedArgument<CommandSourceStack, ?>> arguments = new HashMap<>();
-        Config.COMMON.gameRules.forEach((ruleKey, configValue) -> arguments.put(ruleKey.getId(), new ParsedArgument<CommandSourceStack, Object>(0, 0, configValue.get())));
-        CommandContext<CommandSourceStack> context = new CommandContext<>(server.createCommandSourceStack(), null, arguments, null, null, null, null, null, null, false);
-        Config.COMMON.gameRules.forEach((ruleKey, configValue) -> rules.getRule(ruleKey).setFromArgument(context, ruleKey.getId()));
+        Config.COMMON.gameRules.forEach((key, configValue) -> {
+            var rule = rules.getRule(key);
+            if (rule instanceof GameRules.IntegerValue intVal && configValue instanceof IntValue config)
+                intVal.set(config.get(), server);
+            else if (rule instanceof GameRules.BooleanValue boolVal && configValue instanceof BooleanValue config)
+                boolVal.set(config.get(), server);
+            else
+                LOGGER.warn("Could not apply gamerule {} as it is not an integer or boolean, it's {}", key.getId(), configValue.getClass().getSimpleName());
+        });
+
+        var entries = Config.COMMON.modGameRules.get().valueMap();
+        if (!entries.isEmpty()) {
+            LOGGER.info("Applying config modded gamerules to level {}", info.getLevelName());
+            GameRules.visitGameRuleTypes(new GameRules.GameRuleTypeVisitor() {
+                @Override
+                public <T extends GameRules.Value<T>> void visit(GameRules.@NotNull Key<T> key, GameRules.@NotNull Type<T> type) {
+                    String category = key.getCategory().toString().toLowerCase();
+                    var cat = entries.get(category);
+                    if (!(cat instanceof com.electronwill.nightconfig.core.Config cfg)) return;
+
+                    var val = cfg.get(key.getId());
+                    if (val == null) return;
+
+                    var rule = rules.getRule(key);
+                    if (rule instanceof GameRules.IntegerValue intRule && val instanceof Integer iVal)
+                        intRule.set(iVal, server);
+                    else if (rule instanceof GameRules.BooleanValue boolRule && val instanceof Boolean bVal)
+                        boolRule.set(bVal, server);
+                    else
+                        LOGGER.warn("Could not apply mod gamerule {} as it is not an integer or boolean, it's {}", key.getId(), val.getClass().getSimpleName());
+                }
+            });
+        } else
+            LOGGER.info("No modded gamerules to apply to level {}", info.getLevelName());
 
         if (!info.isDifficultyLocked()) {
 
@@ -87,14 +114,14 @@ public class WorldEvents {
             if (enforceHardcore && info.isHardcore() != hardcore) {
                 LevelSettings settings = info.settings;
                 info.settings = new LevelSettings(settings.levelName(), settings.gameType(), hardcore, settings.difficulty(), settings.allowCommands(), settings.gameRules(), settings.getDataConfiguration());
-                if (hardcore && info.getDifficulty() != Difficulty.HARD) {
+
+                if (hardcore && info.getDifficulty() != Difficulty.HARD)
                     server.setDifficulty(Difficulty.HARD, false);
-                }
-                if (hardcore) {
+
+                if (hardcore)
                     LOGGER.info("Enabling hardcore in level {}", info.getLevelName());
-                } else {
+                else
                     LOGGER.info("Disabling hardcore in level {}", info.getLevelName());
-                }
             }
 
             if (Config.COMMON.setDifficulty.get()) {
@@ -148,6 +175,9 @@ public class WorldEvents {
                     }
                 }
             });
+
+            if (Config.COMMON.updateModdedGamerules(rules))
+                dirty.set(true);
         }
 
         if (Config.COMMON.setDifficulty.get() && !info.isDifficultyLocked()) {
@@ -157,8 +187,7 @@ public class WorldEvents {
             }
         }
 
-        if (dirty.get()) {
+        if (dirty.get())
             Config.commonSpec.save();
-        }
     }
 }
